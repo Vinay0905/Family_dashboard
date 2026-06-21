@@ -153,3 +153,8 @@ create policy "documents_update" on public.documents
 for update using (public.is_family_member(family_id) and (created_by = auth.uid() or public.is_family_admin(family_id)));
 create policy "documents_delete" on public.documents
 for delete using (public.is_family_member(family_id) and (created_by = auth.uid() or public.is_family_admin(family_id)));
+
+-- Grant permissions on shopping lists, shopping items, and reminders to authenticated role
+grant select, insert, update, delete on public.shopping_lists to authenticated;
+grant select, insert, update, delete on public.shopping_items to authenticated;
+grant select, insert, update, delete on public.reminders to authenticated;

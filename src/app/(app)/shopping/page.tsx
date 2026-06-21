@@ -13,7 +13,18 @@ import {
   Smartphone,
   ShoppingBag,
   Loader2,
+  X,
+  Search,
+  ArrowUpDown
 } from "lucide-react";
+
+const SECTIONS = [
+  { value: "groceries", label: "Groceries", color: "text-emerald-500 border-emerald-500/20" },
+  { value: "clothes", label: "Clothes", color: "text-pink-500 border-pink-500/20" },
+  { value: "food", label: "Food / Dining", color: "text-amber-500 border-amber-500/20" },
+  { value: "electronics", label: "Electronics", color: "text-cyan-500 border-cyan-500/20" },
+  { value: "other", label: "Other / General", color: "text-slate-400 border-slate-500/20" }
+];
 
 export default function ShoppingPage() {
   const supabase = createClient();
@@ -30,7 +41,14 @@ export default function ShoppingPage() {
   const [itemName, setItemName] = useState("");
   const [quantity, setQuantity] = useState<number>(1);
   const [unit, setUnit] = useState("");
+  const [itemCategory, setItemCategory] = useState("groceries");
   
+  // Table filters & sorting
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sortField, setSortField] = useState<"name" | "quantity" | "created_at">("created_at");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+
   // Store Mode state
   const [storeMode, setStoreMode] = useState(false);
   const wakeLockRef = useRef<any>(null);
@@ -170,7 +188,8 @@ export default function ShoppingPage() {
           name: itemName.trim(),
           quantity: quantity || 1,
           unit: unit.trim() || null,
-        })
+          category: itemCategory
+        } as any)
         .select()
         .single();
 
@@ -189,6 +208,7 @@ export default function ShoppingPage() {
       setItemName("");
       setQuantity(1);
       setUnit("");
+      setItemCategory("groceries");
     } catch (err) {
       console.error("Failed to add item:", err);
     }
@@ -238,6 +258,31 @@ export default function ShoppingPage() {
     }
   }
 
+  const toggleSort = (field: "name" | "quantity" | "created_at") => {
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  // Rule 15: Green for complete, Yellow for in progress
+  const getItemStatus = (item: any) => {
+    if (item.is_purchased) {
+      return {
+        label: "Bought",
+        color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+        dotColor: "bg-emerald-500"
+      };
+    }
+    return {
+      label: "Pending",
+      color: "bg-amber-500/10 text-amber-500 border-amber-500/20",
+      dotColor: "bg-amber-500"
+    };
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
@@ -246,8 +291,47 @@ export default function ShoppingPage() {
     );
   }
 
-  const unpurchasedItems = selectedList?.shopping_items.filter((i: any) => !i.is_purchased) || [];
-  const purchasedItems = selectedList?.shopping_items.filter((i: any) => i.is_purchased) || [];
+  // Pre-process, filter and sort items of selected list
+  const rawItems = selectedList?.shopping_items || [];
+  const processedItems = rawItems
+    .filter((item: any) => {
+      const matchSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchStatus =
+        statusFilter === "all" ||
+        (statusFilter === "purchased" && item.is_purchased) ||
+        (statusFilter === "pending" && !item.is_purchased);
+
+      return matchSearch && matchStatus;
+    })
+    .sort((a: any, b: any) => {
+      let multiplier = sortDirection === "asc" ? 1 : -1;
+      if (sortField === "name") {
+        return a.name.localeCompare(b.name) * multiplier;
+      } else if (sortField === "quantity") {
+        return (Number(a.quantity) - Number(b.quantity)) * multiplier;
+      } else {
+        // default earliest date first
+        return (new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) * multiplier;
+      }
+    });
+
+  // Group filtered items by section
+  const itemsBySection: Record<string, any[]> = {
+    groceries: [],
+    clothes: [],
+    food: [],
+    electronics: [],
+    other: []
+  };
+
+  processedItems.forEach((item: any) => {
+    const cat = item.category || "other";
+    if (cat in itemsBySection) {
+      itemsBySection[cat].push(item);
+    } else {
+      itemsBySection.other.push(item);
+    }
+  });
 
   return (
     <div className={`space-y-8 max-w-5xl mx-auto transition-all ${storeMode ? "pb-32" : ""}`}>
@@ -259,14 +343,14 @@ export default function ShoppingPage() {
               Shopping <span className="text-primary italic">Lists</span>
             </h1>
             <p className="font-sans text-sm text-on-surface-variant mt-2 font-medium">
-              Coordinate grocery and household shopping lists with the entire family in real-time.
+              Coordinate groceries, clothes, food, and electronics with the family in table view.
             </p>
           </div>
 
           {selectedListId && (
             <button
               onClick={() => setStoreMode(true)}
-              className="bg-secondary text-on-secondary font-sans text-xs font-bold uppercase tracking-widest py-3 px-6 rounded shadow-[0_0_15px_rgba(0,105,112,0.15)] flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all cursor-pointer shrink-0"
+              className="bg-secondary text-on-secondary font-sans text-xs font-bold uppercase tracking-widest py-3 px-6 rounded shadow-[0_0_15px_rgba(0,105,112,0.15)] flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all cursor-pointer shrink-0 animate-pulse-slow"
             >
               <Smartphone className="h-4 w-4" />
               Store Mode
@@ -275,12 +359,12 @@ export default function ShoppingPage() {
         </div>
       )}
 
-      {/* Store Mode Header Banner */}
+      {/* Store Mode Banner */}
       {storeMode && (
         <div className="rounded bg-primary p-5 text-white shadow-xl flex items-center justify-between animate-slide-in">
           <div>
             <span className="text-[9px] uppercase font-bold tracking-widest bg-white/20 px-2.5 py-0.5 rounded">
-              Store Mode Active (Screen Kept Awake)
+              Store Mode (Screen Kept Awake)
             </span>
             <h2 className="font-heading text-2xl font-extrabold mt-1.5">{selectedList?.name}</h2>
           </div>
@@ -293,15 +377,14 @@ export default function ShoppingPage() {
         </div>
       )}
 
-      {/* Main Grid View */}
+      {/* Main Grid Layout */}
       <div className="grid gap-6 md:grid-cols-12">
-        {/* Lists Selector Sidebar */}
+        {/* Lists Sidebar */}
         {!storeMode && (
           <div className="md:col-span-4 space-y-6">
-            {/* Sidebar list selection card */}
             <div className="rounded glass-card p-5 bg-surface-container-lowest border border-primary/10">
               <h3 className="text-[10px] font-bold uppercase tracking-wider text-primary mb-3">
-                Your Family Lists
+                Family Lists
               </h3>
 
               {lists.length === 0 ? (
@@ -309,14 +392,14 @@ export default function ShoppingPage() {
               ) : (
                 <div className="space-y-1">
                   {lists.map((l) => {
-                    const activeCount = l.shopping_items.filter((i: any) => !i.is_purchased).length;
+                    const pendingCount = l.shopping_items.filter((i: any) => !i.is_purchased).length;
                     return (
                       <div
                         key={l.id}
                         className={`flex items-center justify-between rounded px-3 py-2 text-xs font-semibold transition-all ${
                           selectedListId === l.id
-                            ? "bg-primary/10 text-primary border border-primary/20 shadow-[0_0_15px_rgba(183,0,79,0.03)]"
-                            : "text-on-surface-variant hover:text-primary hover:bg-primary/5 border border-transparent"
+                            ? "bg-primary/10 text-primary border border-primary/20"
+                            : "text-on-surface-variant hover:text-primary hover:bg-primary/5"
                         }`}
                       >
                         <button
@@ -326,9 +409,9 @@ export default function ShoppingPage() {
                           {l.name}
                         </button>
                         <div className="flex items-center gap-2">
-                          {activeCount > 0 && (
+                          {pendingCount > 0 && (
                             <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-primary/15 text-primary border border-primary/20">
-                              {activeCount}
+                              {pendingCount}
                             </span>
                           )}
                           <button
@@ -346,21 +429,21 @@ export default function ShoppingPage() {
               )}
             </div>
 
-            {/* Create list form card */}
+            {/* Create list form */}
             <div className="rounded glass-card p-5 bg-surface-container-lowest border border-primary/10">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-primary mb-3">Create New List</h4>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-primary mb-3">Create List</h4>
               <form onSubmit={handleCreateList} className="space-y-3">
                 <input
                   type="text"
-                  placeholder="e.g. Sunday Groceries"
+                  placeholder="e.g. Weekly Groceries"
                   value={newListName}
                   onChange={(e) => setNewListName(e.target.value)}
-                  className="w-full rounded border border-outline-variant bg-white px-3 py-2 text-xs text-on-surface focus:border-primary focus:outline-none transition-colors"
+                  className="w-full rounded border border-outline-variant bg-white px-3 py-2 text-xs text-on-surface focus:border-primary focus:outline-none"
                   required
                 />
                 <button 
                   type="submit" 
-                  className="w-full bg-primary text-on-primary font-sans text-xs font-bold uppercase tracking-widest py-2 rounded hover:brightness-110 active:scale-95 transition-all shadow-[0_0_10px_rgba(183,0,79,0.1)] cursor-pointer"
+                  className="w-full bg-primary text-on-primary font-sans text-xs font-bold uppercase tracking-widest py-2 rounded hover:brightness-110 active:scale-95 transition-all shadow-sm cursor-pointer"
                 >
                   Create List
                 </button>
@@ -369,7 +452,7 @@ export default function ShoppingPage() {
           </div>
         )}
 
-        {/* Selected List Items Column */}
+        {/* Selected List View */}
         <div className={`md:col-span-8 space-y-6 ${storeMode ? "md:col-span-12 max-w-3xl mx-auto w-full" : ""}`}>
           {selectedListId ? (
             <div className="space-y-6">
@@ -377,167 +460,205 @@ export default function ShoppingPage() {
               {/* Add Item form */}
               {!storeMode && (
                 <div className="rounded glass-card p-5 bg-surface-container-lowest border border-primary/10">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-primary mb-3">Add Item to List</h3>
-                  <form onSubmit={handleAddItem} className="flex flex-col sm:flex-row gap-3">
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        placeholder="Item name (e.g. Organic Milk)"
-                        value={itemName}
-                        onChange={(e) => setItemName(e.target.value)}
-                        className="w-full rounded border border-outline-variant bg-white px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none transition-colors"
-                        required
-                      />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-primary mb-3">Add Item</h3>
+                  <form onSubmit={handleAddItem} className="space-y-3">
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="flex-1">
+                        <input
+                          type="text"
+                          placeholder="Item name (e.g. Bread, T-shirt, iPhone Charger)"
+                          value={itemName}
+                          onChange={(e) => setItemName(e.target.value)}
+                          className="w-full rounded border border-outline-variant bg-white px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none"
+                          required
+                        />
+                      </div>
+                      <div className="flex gap-2 sm:w-60">
+                        <input
+                          type="number"
+                          placeholder="Qty"
+                          value={quantity || ""}
+                          onChange={(e) => setQuantity(Number(e.target.value))}
+                          className="w-16 rounded border border-outline-variant bg-white px-2.5 py-2 text-sm text-on-surface focus:border-primary focus:outline-none"
+                          min={0.1}
+                          step="any"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Unit (e.g. kg, pack)"
+                          value={unit}
+                          onChange={(e) => setUnit(e.target.value)}
+                          className="flex-1 rounded border border-outline-variant bg-white px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none"
+                        />
+                      </div>
                     </div>
-                    <div className="flex gap-2 sm:w-64">
-                      <input
-                        type="number"
-                        placeholder="Qty"
-                        value={quantity || ""}
-                        onChange={(e) => setQuantity(Number(e.target.value))}
-                        className="w-20 rounded border border-outline-variant bg-white px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none transition-colors"
-                        min={0.1}
-                        step="any"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Unit (e.g. L, kg, pack)"
-                        value={unit}
-                        onChange={(e) => setUnit(e.target.value)}
-                        className="flex-1 rounded border border-outline-variant bg-white px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none transition-colors"
-                      />
+
+                    <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-1">
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-primary shrink-0">Section:</label>
+                        <select
+                          value={itemCategory}
+                          onChange={(e) => setItemCategory(e.target.value)}
+                          className="rounded border border-outline-variant bg-white px-3 py-1.5 text-xs text-on-surface font-semibold outline-none focus:border-primary transition-all flex-grow sm:flex-none h-8"
+                        >
+                          {SECTIONS.map((sec) => (
+                            <option key={sec.value} value={sec.value}>{sec.label}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <button 
+                        type="submit" 
+                        className="w-full sm:w-auto bg-primary text-on-primary font-sans text-xs font-bold uppercase tracking-widest px-8 py-2 rounded hover:brightness-110 active:scale-95 transition-all shadow-md cursor-pointer shrink-0"
+                      >
+                        Add Item
+                      </button>
                     </div>
-                    <button 
-                      type="submit" 
-                      className="bg-primary text-on-primary font-sans text-xs font-bold uppercase tracking-widest px-6 py-2 rounded hover:brightness-110 active:scale-95 transition-all shadow-[0_0_10px_rgba(183,0,79,0.1)] cursor-pointer shrink-0"
-                    >
-                      Add
-                    </button>
                   </form>
                 </div>
               )}
 
-              {/* Items List */}
-              <div className="space-y-6">
-                {/* Active Items */}
-                <div className="space-y-2">
-                  {unpurchasedItems.length === 0 ? (
-                    !storeMode && (
-                      <div className="rounded border border-dashed border-primary/10 p-10 text-center text-on-surface-variant/50">
-                        <ShoppingBag className="mx-auto h-8 w-8 mb-2 opacity-30" />
-                        <p className="text-sm font-medium">All items purchased or list is empty.</p>
-                      </div>
-                    )
-                  ) : (
-                    unpurchasedItems.map((item: any) => (
-                      <div
-                        key={item.id}
-                        onClick={() => handleToggleItem(item.id, item.is_purchased)}
-                        className={`group flex items-center justify-between rounded border transition-all cursor-pointer ${
-                          storeMode
-                            ? "p-5 border-primary/20 bg-surface-container-lowest hover:bg-primary/5 active:scale-98"
-                            : "p-3 border-outline/10 bg-white hover:bg-primary/[0.02]"
-                        }`}
+              {/* Table search & sort toolbar */}
+              {!storeMode && (
+                <section className="glass-card rounded p-3 shadow-sm flex flex-col sm:flex-row gap-3 items-center justify-between">
+                  <div className="relative w-full sm:max-w-xs">
+                    <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-on-surface-variant/60" />
+                    <Input
+                      placeholder="Search items..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-8 bg-surface-container-lowest border-outline-variant text-xs h-8 rounded"
+                    />
+                  </div>
+
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="rounded border border-outline-variant bg-surface-container-lowest px-3 py-1 text-xs text-on-surface font-semibold outline-none focus:border-primary transition-all h-8"
+                    >
+                      <option value="all">All Items</option>
+                      <option value="pending">Pending Only</option>
+                      <option value="purchased">Bought Only</option>
+                    </select>
+
+                    <div className="flex rounded border border-outline-variant bg-surface-container-lowest text-xs h-8 divide-x divide-outline-variant overflow-hidden font-bold">
+                      <button 
+                        onClick={() => toggleSort("name")}
+                        className={`px-3 flex items-center gap-1.5 hover:bg-primary/5 transition-colors ${sortField === "name" ? "text-primary" : "text-on-surface-variant"}`}
                       >
-                        <div className="flex items-center gap-4">
-                          <button
-                            type="button"
-                            className={`flex items-center justify-center rounded-full border transition-all shrink-0 ${
-                              storeMode
-                                ? "h-8 w-8 border-primary/45 hover:border-primary text-primary"
-                                : "h-5 w-5 border-outline/30 hover:border-primary text-primary"
-                            } bg-white`}
-                          >
-                            <span className="opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Check className={storeMode ? "h-5 w-5" : "h-3.5 w-3.5"} />
-                            </span>
-                          </button>
-                          
-                          <span
-                            className={`font-heading font-extrabold text-on-surface leading-tight ${
-                              storeMode ? "text-lg" : "text-sm"
-                            }`}
-                          >
-                            {item.name}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-4">
-                          <span
-                            className={`font-sans font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded ${
-                              storeMode ? "text-sm" : "text-xs"
-                            }`}
-                          >
-                            {item.quantity} {item.unit || ""}
-                          </span>
-
-                          {!storeMode && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteItem(item.id);
-                              }}
-                              className="opacity-0 group-hover:opacity-100 text-on-surface-variant/40 hover:text-primary transition-opacity cursor-pointer"
-                              title="Delete Item"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                {/* Purchased / Crossed Off Section */}
-                {purchasedItems.length > 0 && (
-                  <div className="space-y-2.5 pt-4 border-t border-primary/10">
-                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-primary/60 px-1">
-                      Bought / Crossed Off ({purchasedItems.length})
-                    </h4>
-                    
-                    <div className="space-y-2">
-                      {purchasedItems.map((item: any) => (
-                        <div
-                          key={item.id}
-                          onClick={() => handleToggleItem(item.id, item.is_purchased)}
-                          className={`group flex items-center justify-between rounded border border-outline/5 bg-surface-container-low/50 p-3 opacity-60 hover:opacity-85 transition-opacity cursor-pointer`}
-                        >
-                          <div className="flex items-center gap-4">
-                            <button
-                              type="button"
-                              className={`flex items-center justify-center rounded-full border border-primary bg-primary text-white shrink-0 ${
-                                storeMode ? "h-8 w-8" : "h-5 w-5"
-                              }`}
-                            >
-                              <Check className={storeMode ? "h-5 w-5" : "h-3.5 w-3.5"} />
-                            </button>
-                            <span className="text-sm line-through text-on-surface-variant font-medium">
-                              {item.name}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-4">
-                            <span className="text-xs text-on-surface-variant/60 font-bold">
-                              {item.quantity} {item.unit || ""}
-                            </span>
-
-                            {!storeMode && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteItem(item.id);
-                                }}
-                                className="opacity-0 group-hover:opacity-100 text-on-surface-variant/40 hover:text-primary transition-opacity cursor-pointer"
-                                title="Delete Item"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                        Name <ArrowUpDown className="h-3 w-3" />
+                      </button>
+                      <button 
+                        onClick={() => toggleSort("quantity")}
+                        className={`px-3 flex items-center gap-1.5 hover:bg-primary/5 transition-colors ${sortField === "quantity" ? "text-primary" : "text-on-surface-variant"}`}
+                      >
+                        Qty <ArrowUpDown className="h-3 w-3" />
+                      </button>
                     </div>
+                  </div>
+                </section>
+              )}
+
+              {/* Section-Wise Tables Grid */}
+              <div className="space-y-8">
+                {SECTIONS.map((section) => {
+                  const sectionItems = itemsBySection[section.value] || [];
+                  if (sectionItems.length === 0) return null;
+
+                  return (
+                    <div key={section.value} className="glass-card rounded overflow-hidden border border-primary/5 shadow-sm space-y-3 p-4">
+                      {/* Section Title Header */}
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-primary border-b border-primary/10 pb-2 flex items-center justify-between">
+                        <span>{section.label}</span>
+                        <span className="text-[10px] bg-primary/10 text-primary border border-primary/15 px-2 py-0.5 rounded">
+                          {sectionItems.length}
+                        </span>
+                      </h4>
+
+                      {/* Section Table */}
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse text-xs">
+                          <thead>
+                            <tr className="bg-surface-container-low border-b border-primary/5 font-semibold text-on-surface-variant uppercase tracking-wider">
+                              <th className="p-2.5 pl-3 w-10 text-center">Status</th>
+                              <th className="p-2.5">Item Name</th>
+                              <th className="p-2.5 text-right w-32">Quantity</th>
+                              <th className="p-2.5 w-16 text-center">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-surface-container/30">
+                            {sectionItems.map((item) => {
+                              const statusInfo = getItemStatus(item);
+
+                              return (
+                                <tr 
+                                  key={item.id} 
+                                  onClick={() => handleToggleItem(item.id, item.is_purchased)}
+                                  className={`hover:bg-primary/[0.01] transition-colors cursor-pointer ${
+                                    item.is_purchased ? "opacity-60" : ""
+                                  }`}
+                                >
+                                  {/* Checkbox / Status dot */}
+                                  <td className="p-2.5 pl-3 text-center">
+                                    <div className="flex items-center justify-center">
+                                      <span 
+                                        className={`flex items-center justify-center rounded-full border transition-all ${
+                                          item.is_purchased
+                                            ? "h-5 w-5 bg-emerald-500 border-emerald-500 text-white"
+                                            : storeMode
+                                            ? "h-7 w-7 border-primary/40 bg-white"
+                                            : "h-4.5 w-4.5 border-outline/30 bg-white"
+                                        }`}
+                                      >
+                                        {item.is_purchased && <Check className="h-3 w-3" />}
+                                      </span>
+                                    </div>
+                                  </td>
+                                  
+                                  {/* Item Name */}
+                                  <td className="p-2.5">
+                                    <span className={`font-heading text-sm font-extrabold leading-snug text-on-surface ${
+                                      item.is_purchased ? "line-through opacity-70" : ""
+                                    }`}>
+                                      {item.name}
+                                    </span>
+                                  </td>
+
+                                  {/* Qty & Unit */}
+                                  <td className="p-2.5 text-right font-mono font-bold text-primary">
+                                    {item.quantity} {item.unit || ""}
+                                  </td>
+
+                                  {/* Actions */}
+                                  <td className="p-2.5 text-center">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteItem(item.id);
+                                      }}
+                                      className="p-1 text-on-surface-variant/40 hover:text-primary hover:bg-primary/10 rounded transition-all cursor-pointer"
+                                      title="Delete Item"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* If all sections are empty */}
+                {processedItems.length === 0 && (
+                  <div className="rounded border border-dashed border-primary/10 p-12 text-center text-on-surface-variant/50">
+                    <ShoppingBag className="mx-auto h-12 w-12 mb-3 opacity-20 text-primary" />
+                    <h3 className="font-heading text-lg font-bold text-on-surface">No Shopping Items</h3>
+                    <p className="text-sm text-on-surface-variant mt-1">This shopping list is empty or items match no filters.</p>
                   </div>
                 )}
               </div>
@@ -546,7 +667,7 @@ export default function ShoppingPage() {
             <div className="rounded border border-dashed border-primary/10 p-12 text-center text-on-surface-variant/50">
               <ShoppingCart className="mx-auto h-12 w-12 mb-3 opacity-20 text-primary" />
               <h3 className="font-heading text-lg font-bold text-on-surface">Select or Create a List</h3>
-              <p className="text-sm text-on-surface-variant mt-1">Choose an existing shopping list on the left or create a new one to begin.</p>
+              <p className="text-sm text-on-surface-variant mt-1">Choose an existing shopping list on the left to begin.</p>
             </div>
           )}
         </div>
