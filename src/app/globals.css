@@ -1,26 +1,130 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: 'Inter', sans-serif;
+  --font-serif: 'Playfair Display', serif;
+  --font-heading: 'Playfair Display', serif;
+
+  --color-primary: #b7004f;
+  --color-primary-container: #e40a65;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #fffbff;
+  --color-secondary: #006970;
+  --color-secondary-container: #00eefc;
+  --color-on-secondary: #ffffff;
+  --color-on-secondary-container: #00686f;
+  --color-tertiary: #7000ff;
+  --color-tertiary-container: #874cff;
+  --color-on-tertiary: #ffffff;
+  --color-on-tertiary-container: #fffbff;
+  
+  --color-background: #faf8ff;
+  --color-on-background: #131b2e;
+  --color-surface: #faf8ff;
+  --color-on-surface: #131b2e;
+  --color-on-surface-variant: #5b3f44;
+  --color-surface-dim: #d2d9f4;
+  --color-surface-bright: #faf8ff;
+  --color-surface-container: #eaedff;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f2f3ff;
+  --color-surface-container-high: #e2e7ff;
+  --color-surface-container-highest: #dae2fd;
+  
+  --color-outline: #8f6f74;
+  --color-outline-variant: #e4bdc3;
+  --color-border: #e4bdc3;
+  --color-ring: #b7004f;
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  
+  --radius-sm: 4px;
+  --radius-md: 4px;
+  --radius-lg: 4px;
+  --radius-xl: 4px;
+  --radius-2xl: 4px;
+  --radius-3xl: 4px;
+  --radius-4xl: 4px;
+  
+  --spacing-max-width: 1280px;
+  --spacing-unit: 4px;
+  --spacing-margin-desktop: 64px;
+  --spacing-margin-mobile: 16px;
+  --spacing-gutter: 24px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: #faf8ff;
+    color: #131b2e;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Playfair Display', serif;
+  }
+  html {
+    @apply font-sans;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Custom design system utilities */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.neon-glow {
+  box-shadow: 0 0 20px rgba(183, 0, 79, 0.15);
+}
+
+.neon-glow-active {
+  box-shadow: 0 0 30px rgba(183, 0, 79, 0.25);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(183, 0, 79, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  border-color: #b7004f;
+  box-shadow: 0 0 25px rgba(183, 0, 79, 0.1);
+  transform: translateY(-2px);
+}
+
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 24px;
+}
+
+@keyframes pulse-neon {
+  0% { opacity: 0.8; }
+  50% { opacity: 1; text-shadow: 0 0 10px #b7004f; }
+  100% { opacity: 0.8; }
+}
+
+.animate-neon-text {
+  animation: pulse-neon 3s infinite ease-in-out;
+}
+
+.sparkline-svg {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: dash 3s ease-in-out forwards;
+}
+
+@keyframes dash {
+  to { stroke-dashoffset: 0; }
 }
