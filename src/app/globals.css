@@ -65,6 +65,7 @@
   }
   body {
     font-family: 'Inter', sans-serif;
+    font-size: 17px;
     background-color: #faf8ff;
     color: #131b2e;
     -webkit-font-smoothing: antialiased;
@@ -98,9 +99,8 @@
 }
 
 .glass-card:hover {
-  border-color: #b7004f;
-  box-shadow: 0 0 25px rgba(183, 0, 79, 0.1);
-  transform: translateY(-2px);
+  border-color: rgba(183, 0, 79, 0.25);
+  box-shadow: 0 4px 24px rgba(183, 0, 79, 0.08), 0 0 0 1px rgba(183, 0, 79, 0.06);
 }
 
 .bento-grid {

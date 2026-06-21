@@ -517,7 +517,7 @@ export default function ExpensesPage() {
               <TrendingUp className="h-4 w-4" /> Expense categories
             </h4>
             <div className="flex-1 min-h-0 relative">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 <PieChart>
                   <Pie
                     data={chartData}
@@ -552,7 +552,7 @@ export default function ExpensesPage() {
           <div className="glass-card rounded p-6 shadow-sm h-[300px]">
             <h4 className="text-xs font-bold uppercase tracking-wider text-primary mb-4">Daily Spend Trend</h4>
             <div className="w-full h-full pb-8">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 <BarChart data={dailySpendArray}>
                   <XAxis dataKey="day" tick={{ fontSize: 9 }} stroke="#8f6f74" />
                   <YAxis tick={{ fontSize: 9 }} stroke="#8f6f74" />
