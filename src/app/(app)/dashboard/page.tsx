@@ -19,7 +19,7 @@ import {
   Sparkles,
   Clock,
   AlertTriangle,
-  CircleDot,
+  Plus
 } from "lucide-react";
 
 interface DashboardData {
@@ -41,13 +41,13 @@ function getGreeting() {
   return { text: "Good evening", icon: Moon, emoji: "🌙" };
 }
 
-/* ─── Sparkline SVG ─────────────────────────────────────────── */
-function Sparkline({ data, color = "#b7004f", height = 80 }: { data: number[]; color?: string; height?: number }) {
+/* ─── Refined Sparkline SVG ─────────────────────────────────── */
+function Sparkline({ data, color = "#005da7", height = 80 }: { data: number[]; color?: string; height?: number }) {
   if (!data || data.length < 2) {
     return (
       <svg className="w-full" style={{ height }} viewBox="0 0 100 40" preserveAspectRatio="none">
-        <line x1="0" y1="20" x2="100" y2="20" stroke={color} strokeWidth="1.5" strokeDasharray="4 3" opacity="0.25" />
-        <text x="50" y="28" textAnchor="middle" fill={color} fontSize="6" opacity="0.4">No data yet</text>
+        <line x1="0" y1="20" x2="100" y2="20" stroke={color} strokeWidth="1" strokeDasharray="3 3" opacity="0.2" />
+        <text x="50" y="24" textAnchor="middle" fill={color} fontSize="5" opacity="0.4" className="font-semibold">No transactions</text>
       </svg>
     );
   }
@@ -60,7 +60,6 @@ function Sparkline({ data, color = "#b7004f", height = 80 }: { data: number[]; c
     y: 36 - ((v - min) / range) * 30,
   }));
 
-  // Smooth curve using quadratic bezier
   let pathD = `M ${pts[0].x},${pts[0].y}`;
   for (let i = 1; i < pts.length; i++) {
     const cpx = (pts[i - 1].x + pts[i].x) / 2;
@@ -72,34 +71,34 @@ function Sparkline({ data, color = "#b7004f", height = 80 }: { data: number[]; c
   return (
     <svg className="w-full" style={{ height }} viewBox="0 0 100 40" preserveAspectRatio="none">
       <defs>
-        <linearGradient id="sparkArea" x1="0%" x2="0%" y1="0%" y2="100%">
-          <stop offset="0%" style={{ stopColor: color, stopOpacity: 0.3 }} />
-          <stop offset="100%" style={{ stopColor: color, stopOpacity: 0.02 }} />
+        <linearGradient id="sparkAreaNew" x1="0%" x2="0%" y1="0%" y2="100%">
+          <stop offset="0%" style={{ stopColor: color, stopOpacity: 0.25 }} />
+          <stop offset="100%" style={{ stopColor: color, stopOpacity: 0.01 }} />
         </linearGradient>
       </defs>
-      <path d={areaD} fill="url(#sparkArea)" />
-      <path d={pathD} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={lastPt.x} cy={lastPt.y} r="2.5" fill="white" stroke={color} strokeWidth="1.5" />
+      <path d={areaD} fill="url(#sparkAreaNew)" />
+      <path d={pathD} fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={lastPt.x} cy={lastPt.y} r="2.2" fill="white" stroke={color} strokeWidth="1.5" />
     </svg>
   );
 }
 
-/* ─── Style maps ────────────────────────────────────────────── */
+/* ─── Warmth & Order Style Maps ────────────────────────────── */
 const CAT_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
-  family:   { bg: "bg-primary/12", text: "text-primary", dot: "bg-primary" },
-  school:   { bg: "bg-purple-500/12", text: "text-purple-600", dot: "bg-purple-500" },
-  work:     { bg: "bg-blue-500/12", text: "text-blue-600", dot: "bg-blue-500" },
-  travel:   { bg: "bg-amber-500/12", text: "text-amber-600", dot: "bg-amber-500" },
-  medical:  { bg: "bg-rose-500/12", text: "text-rose-600", dot: "bg-rose-500" },
-  birthday: { bg: "bg-emerald-500/12", text: "text-emerald-600", dot: "bg-emerald-500" },
-  other:    { bg: "bg-slate-500/12", text: "text-slate-600", dot: "bg-slate-400" },
+  family:   { bg: "bg-primary/10", text: "text-primary", dot: "bg-primary" },
+  school:   { bg: "bg-purple-600/10", text: "text-purple-700", dot: "bg-purple-600" },
+  work:     { bg: "bg-blue-600/10", text: "text-blue-700", dot: "bg-blue-600" },
+  travel:   { bg: "bg-amber-600/10", text: "text-amber-700", dot: "bg-amber-600" },
+  medical:  { bg: "bg-rose-600/10", text: "text-rose-700", dot: "bg-rose-600" },
+  birthday: { bg: "bg-emerald-600/10", text: "text-emerald-700", dot: "bg-emerald-600" },
+  other:    { bg: "bg-slate-600/10", text: "text-slate-700", dot: "bg-slate-500" },
 };
 
 const STATUS_STYLE: Record<string, { bg: string; text: string }> = {
-  pending:     { bg: "bg-amber-500/12", text: "text-amber-700" },
-  in_progress: { bg: "bg-blue-500/12", text: "text-blue-700" },
-  completed:   { bg: "bg-emerald-500/12", text: "text-emerald-700" },
-  overdue:     { bg: "bg-rose-500/12", text: "text-rose-700" },
+  pending:     { bg: "bg-amber-500/10", text: "text-amber-800" },
+  in_progress: { bg: "bg-blue-500/10", text: "text-blue-800" },
+  completed:   { bg: "bg-emerald-500/10", text: "text-emerald-800" },
+  overdue:     { bg: "bg-rose-500/10", text: "text-rose-800" },
 };
 
 /* ─── Animated stat number ──────────────────────────────────── */
@@ -107,23 +106,20 @@ function AnimatedNumber({ value }: { value: number }) {
   const [display, setDisplay] = useState(0);
   useEffect(() => {
     if (value === 0) { setDisplay(0); return; }
-    const steps = 20;
+    const steps = 15;
     const inc = value / steps;
     let current = 0;
     const timer = setInterval(() => {
       current += inc;
       if (current >= value) { setDisplay(value); clearInterval(timer); }
       else setDisplay(Math.round(current));
-    }, 30);
+    }, 25);
     return () => clearInterval(timer);
   }, [value]);
   return <>{display}</>;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   DASHBOARD PAGE
-   ═══════════════════════════════════════════════════════════════ */
-export default function DashboardPage() {
+export default function NewDashboardPage() {
   const router = useRouter();
   const supabase = createClient();
   const [loading, setLoading] = useState(true);
@@ -204,7 +200,7 @@ export default function DashboardPage() {
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-base text-on-surface-variant font-medium">Loading your dashboard…</p>
+          <p className="text-sm text-on-surface-variant font-medium">Gathering family updates…</p>
         </div>
       </div>
     );
@@ -222,287 +218,328 @@ export default function DashboardPage() {
   );
 
   return (
-    <div className="space-y-6">
-
-      {/* ═══ HERO GREETING ═══════════════════════════════════════ */}
-      <header className="glass-card rounded-lg p-6 md:p-8 relative overflow-hidden">
-        {/* Decorative gradient blob */}
-        <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full bg-gradient-to-br from-primary/20 via-primary/5 to-transparent blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-gradient-to-tr from-secondary/15 to-transparent blur-3xl pointer-events-none" />
-
-        <div className="relative flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3">
-          <div>
-            <p className="text-sm font-bold tracking-wider text-on-surface-variant flex items-center gap-2 mb-1">
-              <span>{greeting.emoji}</span>
-              <span className="uppercase">{greeting.text}</span>
-            </p>
-            <h1 className="font-heading text-4xl md:text-5xl text-on-background tracking-tight font-extrabold leading-tight">
-              {data.displayName}
-            </h1>
-            <p className="text-sm text-on-surface-variant mt-1.5 font-medium flex items-center gap-2">
-              <CalendarDays className="h-4 w-4 text-primary/60" />
-              {todayStr}
-            </p>
+    <div className="space-y-6 max-w-7xl mx-auto">
+      
+      {/* ─── HERO GREETING SECTION ───────────────────────────── */}
+      <section className="bg-surface-container-lowest p-6 md:p-8 rounded-2xl border border-outline-variant/30 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
+        {/* Soft atmospheric gradient glow matching Warmth & Order */}
+        <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-gradient-to-br from-primary/10 via-secondary/5 to-transparent blur-3xl pointer-events-none" />
+        
+        <div className="relative z-10 space-y-1">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-on-surface-variant/80">
+            <span>{greeting.emoji}</span>
+            <span>{greeting.text}</span>
           </div>
-
-          <div className="flex flex-col items-end gap-1.5">
-            <span className="text-sm font-bold bg-primary/10 text-primary px-4 py-2 rounded-lg border border-primary/20 flex items-center gap-2">
-              <Sparkles className="h-4 w-4" />
-              {data.familyName}
-            </span>
-            {overdueTasks.length > 0 && (
-              <span className="text-xs font-bold bg-rose-500/10 text-rose-600 px-3 py-1 rounded flex items-center gap-1.5 border border-rose-500/20">
-                <AlertTriangle className="h-3.5 w-3.5" />
-                {overdueTasks.length} overdue task{overdueTasks.length > 1 ? "s" : ""}
-              </span>
-            )}
-          </div>
+          <h2 className="font-quicksand text-3xl md:text-4xl font-extrabold text-on-surface tracking-tight">
+            {greeting.text === "Good morning" ? "Good morning" : greeting.text === "Good afternoon" ? "Good afternoon" : "Good evening"}, {data.displayName}
+          </h2>
+          <p className="text-sm text-on-surface-variant font-medium">{todayStr}</p>
         </div>
-      </header>
 
-      {/* ═══ STAT CARDS ══════════════════════════════════════════ */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="relative z-10 flex flex-wrap gap-2">
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold bg-primary/10 text-primary px-4 py-2 rounded-xl border border-primary/20">
+            <Sparkles className="h-3.5 w-3.5" />
+            {data.familyName}
+          </span>
+          {overdueTasks.length > 0 && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold bg-secondary-container/10 text-secondary px-3 py-2 rounded-xl border border-secondary-container/20">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {overdueTasks.length} overdue chore{overdueTasks.length > 1 ? "s" : ""}
+            </span>
+          )}
+        </div>
+      </section>
+
+      {/* ─── BENTO STATS GRID ────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           {
             icon: CalendarDays,
-            label: "Today's Events",
+            label: "Events Today",
             value: data.todayEvents,
-            suffix: data.todayEvents === 1 ? "event" : "events",
+            desc: "agenda items",
             href: "/calendar",
-            gradient: "from-primary/15 to-primary/5",
-            iconColor: "text-primary",
-            accentBorder: "border-l-primary",
+            iconBg: "bg-[#E3F2FD] text-primary",
+            activeClass: "hover:bg-primary-container/5 hover:border-primary/30",
           },
           {
             icon: CheckSquare,
-            label: "Pending Tasks",
+            label: "Active Tasks",
             value: data.openTasks,
-            suffix: data.openTasks === 1 ? "task" : "tasks",
+            desc: "household chores",
             href: "/tasks",
-            gradient: "from-amber-500/15 to-amber-500/5",
-            iconColor: "text-amber-500",
-            accentBorder: "border-l-amber-500",
+            iconBg: "bg-[#E8F5E9] text-tertiary",
+            activeClass: "hover:bg-tertiary-container/5 hover:border-tertiary/30",
           },
           {
             icon: ShoppingCart,
             label: "Shopping Items",
             value: data.shoppingItems,
-            suffix: "to buy",
+            desc: "items to buy",
             href: "/shopping",
-            gradient: "from-emerald-500/15 to-emerald-500/5",
-            iconColor: "text-emerald-500",
-            accentBorder: "border-l-emerald-500",
+            iconBg: "bg-[#FFF3E0] text-secondary",
+            activeClass: "hover:bg-secondary-container/10 hover:border-secondary/30",
           },
           {
             icon: TrendingUp,
-            label: "Monthly Spend",
-            value: -1, // special case for formatted amount
-            suffix: "this month",
+            label: "Total Expenses",
+            value: -1, // special card for spend
+            desc: "spent this month",
             href: "/expenses",
-            gradient: "from-rose-500/15 to-rose-500/5",
-            iconColor: "text-rose-500",
-            accentBorder: "border-l-rose-500",
+            iconBg: "bg-[#FFEBEE] text-secondary-container",
+            activeClass: "hover:bg-secondary-container/10 hover:border-secondary-container/30",
           },
-        ].map((card) => {
+        ].map((card, idx) => {
           const Icon = card.icon;
           return (
             <Link
-              key={card.label}
+              key={idx}
               href={card.href}
-              className={`glass-card rounded-lg p-5 md:p-6 flex flex-col gap-4 group border-l-4 ${card.accentBorder} bg-gradient-to-br ${card.gradient}`}
+              className={`bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/20 flex flex-col justify-between group transition-all duration-200 active:scale-[0.98] shadow-sm ${card.activeClass}`}
             >
-              <div className="flex justify-between items-center">
-                <div className={`w-10 h-10 rounded-lg ${card.iconColor} bg-white/60 flex items-center justify-center shadow-sm`}>
+              <div className="flex justify-between items-start mb-4">
+                <div className={`p-3 rounded-full ${card.iconBg} flex items-center justify-center shadow-xs`}>
                   <Icon className="h-5 w-5" />
                 </div>
-                <ArrowRight className="h-4 w-4 text-on-surface-variant/25 group-hover:text-primary group-hover:translate-x-1 transition-all duration-300" />
+                <ArrowRight className="h-4 w-4 text-on-surface-variant/30 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
               </div>
 
               <div>
-                <p className="font-heading font-extrabold text-3xl md:text-4xl text-on-background leading-none">
-                  {card.value === -1
-                    ? `₹${data.expensesTotal.toLocaleString("en-IN")}`
-                    : <AnimatedNumber value={card.value} />
-                  }
-                </p>
-                <p className="text-sm text-on-surface-variant font-medium mt-1">{card.suffix}</p>
+                <span className="block font-quicksand text-3xl font-bold text-on-surface leading-none">
+                  {card.value === -1 ? (
+                    `₹${data.expensesTotal.toLocaleString("en-IN")}`
+                  ) : (
+                    <AnimatedNumber value={card.value} />
+                  )}
+                </span>
+                <span className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant/40 mt-2">
+                  {card.label}
+                </span>
+                <span className="text-xs text-on-surface-variant/75 font-medium mt-0.5 block">
+                  {card.desc}
+                </span>
               </div>
-
-              <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant/50">{card.label}</p>
             </Link>
           );
         })}
       </div>
 
-      {/* ═══ MAIN CONTENT: Spending + Events + Tasks ═════════════ */}
-      <div className="grid gap-4 lg:grid-cols-3">
+      {/* ─── MAIN BLOCKS ────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Upcoming Agenda Feed */}
+        <div className="lg:col-span-2 bg-surface-container-lowest rounded-2xl border border-outline-variant/20 p-6 flex flex-col justify-between">
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="font-quicksand text-xl font-bold text-on-surface">Upcoming Agenda</h3>
+              <Link href="/calendar" className="text-xs font-bold text-primary hover:underline flex items-center gap-1">
+                View Calendar <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
 
-        {/* ─── Spending Trend (wider) ─────────────────────────── */}
-        <div className="lg:col-span-1 glass-card rounded-lg p-6 flex flex-col justify-between">
+            {data.upcomingEvents.length === 0 ? (
+              <div className="py-12 flex flex-col items-center justify-center text-center text-on-surface-variant/40">
+                <CalendarDays className="h-10 w-10 mb-3 stroke-[1.5] text-on-surface-variant/30" />
+                <p className="text-sm font-semibold">Your agenda is clear today</p>
+                <p className="text-xs font-medium mt-1">Enjoy a relaxing day at home!</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {data.upcomingEvents.map((evt) => {
+                  const evtDate = new Date(evt.start_at);
+                  const isTodayEvt = evtDate.toDateString() === new Date().toDateString();
+                  const cat = CAT_COLORS[evt.category] ?? CAT_COLORS.other;
+                  return (
+                    <div key={evt.id} className="flex gap-4 items-center p-3 rounded-xl border border-outline-variant/15 hover:border-primary/30 hover:bg-surface-container-low/40 transition-all group">
+                      {/* Date / Time highlight box */}
+                      <div className={`shrink-0 w-12 h-12 rounded-xl flex flex-col items-center justify-center font-semibold text-center ${
+                        isTodayEvt ? "bg-primary text-on-primary shadow-xs" : "bg-surface-container-high text-on-surface"
+                      }`}>
+                        <span className="text-[10px] font-bold uppercase leading-none">{evtDate.toLocaleDateString("en-IN", { month: "short" })}</span>
+                        <span className="text-lg font-bold font-quicksand leading-none mt-0.5">{evtDate.getDate()}</span>
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-on-surface group-hover:text-primary transition-colors truncate">{evt.title}</p>
+                        <p className="text-xs text-on-surface-variant font-medium mt-0.5 flex items-center gap-1">
+                          <Clock className="h-3.5 w-3.5 text-on-surface-variant/60" />
+                          {evtDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
+
+                      <span className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-full border border-current/10 ${cat.bg} ${cat.text}`}>
+                        {evt.category}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Quick Actions Panel */}
+        <div className="lg:col-span-1 bg-surface-container-lowest rounded-2xl border border-outline-variant/20 p-6 flex flex-col justify-between">
+          <div>
+            <h3 className="font-quicksand text-xl font-bold text-on-surface mb-4">Quick Actions</h3>
+            <p className="text-xs text-on-surface-variant font-medium mb-6">Instantly log items or updates into the family records.</p>
+            
+            <div className="flex flex-col gap-2">
+              <Link
+                href="/tasks"
+                className="w-full flex items-center justify-between p-4 rounded-xl bg-primary text-on-primary hover:opacity-95 active:scale-[0.98] transition-all font-bold text-sm shadow-sm"
+              >
+                <span className="flex items-center gap-3">
+                  <CheckSquare className="h-4.5 w-4.5" />
+                  Add New Task
+                </span>
+                <Plus className="h-4 w-4" />
+              </Link>
+              
+              <Link
+                href="/calendar"
+                className="w-full flex items-center justify-between p-4 rounded-xl bg-tertiary text-on-tertiary hover:opacity-95 active:scale-[0.98] transition-all font-bold text-sm shadow-sm"
+              >
+                <span className="flex items-center gap-3">
+                  <CalendarDays className="h-4.5 w-4.5" />
+                  Schedule Event
+                </span>
+                <Plus className="h-4 w-4" />
+              </Link>
+
+              <Link
+                href="/expenses"
+                className="w-full flex items-center justify-between p-4 rounded-xl bg-secondary text-on-secondary hover:opacity-95 active:scale-[0.98] transition-all font-bold text-sm shadow-sm"
+              >
+                <span className="flex items-center gap-3">
+                  <TrendingUp className="h-4.5 w-4.5" />
+                  Log Expense
+                </span>
+                <Plus className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+
+          <div className="mt-8 pt-4 border-t border-outline-variant/20">
+            <h4 className="font-quicksand text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Household Status</h4>
+            <div className="flex items-center justify-between text-xs font-semibold text-on-surface-variant">
+              <span>Next Service Due</span>
+              <span className="text-primary font-bold">Checking...</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      {/* ─── BOTTOM BLOCK: SPENDING TREND + PENDING TASKS ─────── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        {/* Spending Trend Chart */}
+        <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant/20 p-6 flex flex-col justify-between">
           <div>
             <div className="flex justify-between items-center mb-1">
-              <h3 className="font-heading font-bold text-lg text-on-surface">Spending Trend</h3>
-              <TrendingUp className="h-5 w-5 text-primary/40" />
+              <h3 className="font-quicksand text-lg font-bold text-on-surface">Weekly Spending</h3>
+              <TrendingUp className="h-5 w-5 text-secondary opacity-60" />
             </div>
-            <p className="text-sm text-on-surface-variant font-medium">Last 7 days</p>
+            <p className="text-xs text-on-surface-variant font-medium">Summary of the last 7 days of transactions.</p>
           </div>
 
-          <div className="my-4">
-            <Sparkline data={data.expenseSparkline} height={100} />
+          <div className="my-6 py-2">
+            <Sparkline data={data.expenseSparkline} color="#a53b29" height={90} />
           </div>
 
-          <div className="flex justify-between items-center border-t border-outline-variant/40 pt-3">
-            <span className="text-sm text-on-surface-variant font-medium">
+          <div className="flex justify-between items-center border-t border-outline-variant/15 pt-4">
+            <span className="text-xs text-on-surface-variant font-bold">
               {new Date(Date.now() - 6 * 86400000).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
             </span>
-            <span className="text-sm text-on-surface-variant font-medium">Today</span>
+            <span className="text-xs text-on-surface-variant font-bold">Today</span>
+            <Link href="/expenses" className="text-xs font-bold text-secondary hover:underline flex items-center gap-1 uppercase tracking-wider">
+              Manage <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           </div>
-
-          <Link
-            href="/expenses"
-            className="mt-3 self-start flex items-center gap-2 text-primary text-sm font-bold uppercase tracking-wide hover:translate-x-1 transition-transform"
-          >
-            View Expenses <ArrowRight className="h-4 w-4" />
-          </Link>
         </div>
 
-        {/* ─── Upcoming Events ─────────────────────────────────── */}
-        <div className="lg:col-span-1 glass-card rounded-lg p-6 flex flex-col">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-heading font-bold text-lg text-on-surface">Upcoming Events</h3>
-            <span className="text-xs font-bold bg-primary/10 text-primary px-2.5 py-1 rounded">
-              {data.todayEvents} today
-            </span>
+        {/* Pending Tasks / Chores */}
+        <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant/20 p-6 flex flex-col justify-between">
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <h3 className="font-quicksand text-lg font-bold text-on-surface">Pending Tasks</h3>
+              <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${overdueTasks.length > 0 ? "bg-rose-500/10 text-rose-700" : "bg-amber-500/10 text-amber-700"}`}>
+                {data.openTasks} active
+              </span>
+            </div>
+            <p className="text-xs text-on-surface-variant font-medium">Assigned household chores and schedules.</p>
           </div>
 
-          {data.upcomingEvents.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center py-8 text-center text-on-surface-variant/35">
-              <CalendarDays className="h-10 w-10 mb-3 stroke-[1.5]" />
-              <p className="text-sm font-semibold">No upcoming events</p>
-              <p className="text-xs font-medium mt-1">Your schedule is clear!</p>
-            </div>
-          ) : (
-            <div className="space-y-2.5 flex-1">
-              {data.upcomingEvents.map((evt) => {
-                const evtDate = new Date(evt.start_at);
-                const isTodayEvt = evtDate.toDateString() === new Date().toDateString();
-                const cat = CAT_COLORS[evt.category] ?? CAT_COLORS.other;
-                return (
-                  <div key={evt.id} className="flex gap-3 items-start p-3 rounded-lg border border-outline-variant/40 hover:border-primary/40 transition-colors">
-                    {/* Date block */}
-                    <div className={`shrink-0 w-12 h-12 rounded-lg flex flex-col items-center justify-center ${isTodayEvt ? "bg-primary text-white" : "bg-surface-container-high text-on-surface"}`}>
-                      <span className="text-[10px] font-bold uppercase leading-none">
-                        {evtDate.toLocaleDateString("en-IN", { month: "short" })}
-                      </span>
-                      <span className="text-lg font-extrabold font-heading leading-none">
-                        {evtDate.getDate()}
-                      </span>
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-on-surface truncate">{evt.title}</p>
-                      <p className="text-xs text-on-surface-variant font-medium mt-0.5 flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {evtDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
-                      </p>
-                    </div>
-
-                    <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${cat.bg} ${cat.text}`}>
-                      {evt.category}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          <Link
-            href="/calendar"
-            className="mt-4 self-start flex items-center gap-2 text-primary text-sm font-bold uppercase tracking-wide hover:translate-x-1 transition-transform"
-          >
-            Open Calendar <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-
-        {/* ─── Pending Tasks ─────────────────────────────────── */}
-        <div className="lg:col-span-1 glass-card rounded-lg p-6 flex flex-col">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-heading font-bold text-lg text-on-surface">Pending Tasks</h3>
-            <span className={`text-xs font-bold px-2.5 py-1 rounded ${overdueTasks.length > 0 ? "bg-rose-500/10 text-rose-600" : "bg-amber-500/10 text-amber-600"}`}>
-              {data.openTasks} open
-            </span>
-          </div>
-
-          {data.recentTasks.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center py-8 text-center text-on-surface-variant/35">
-              <CheckSquare className="h-10 w-10 mb-3 stroke-[1.5]" />
-              <p className="text-sm font-semibold">All tasks done!</p>
-              <p className="text-xs font-medium mt-1">Nothing pending 🎉</p>
-            </div>
-          ) : (
-            <div className="space-y-2 flex-1">
-              {data.recentTasks.map((task) => {
+          <div className="my-4 space-y-2 flex-grow">
+            {data.recentTasks.length === 0 ? (
+              <div className="py-8 flex flex-col items-center justify-center text-center text-on-surface-variant/40">
+                <CheckSquare className="h-8 w-8 mb-2 stroke-[1.5] text-on-surface-variant/30" />
+                <p className="text-xs font-semibold">All chores completed!</p>
+              </div>
+            ) : (
+              data.recentTasks.map((task) => {
                 const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "completed";
                 const statusKey = isOverdue ? "overdue" : task.status;
                 const sty = STATUS_STYLE[statusKey] ?? STATUS_STYLE.pending;
                 return (
-                  <div key={task.id} className="flex gap-3 items-center p-3 rounded-lg border border-outline-variant/40 hover:border-primary/40 transition-colors">
-                    {/* Status dot */}
+                  <div key={task.id} className="flex gap-3 items-center p-2.5 rounded-xl border border-outline-variant/15 hover:border-primary/30 transition-all">
                     <div className={`shrink-0 w-2.5 h-2.5 rounded-full ${isOverdue ? "bg-rose-500 animate-pulse" : task.status === "in_progress" ? "bg-blue-500" : "bg-amber-500"}`} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-on-surface truncate">{task.title}</p>
+                      <p className="text-xs font-bold text-on-surface truncate">{task.title}</p>
                       {task.due_date && (
-                        <p className={`text-xs font-medium mt-0.5 flex items-center gap-1 ${isOverdue ? "text-rose-500" : "text-on-surface-variant"}`}>
-                          <Clock className="h-3 w-3" />
+                        <p className={`text-[10px] font-semibold mt-0.5 flex items-center gap-1 ${isOverdue ? "text-rose-600 font-bold" : "text-on-surface-variant/60"}`}>
                           Due {new Date(task.due_date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
                         </p>
                       )}
                     </div>
-                    <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${sty.bg} ${sty.text}`}>
+                    <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full border border-current/10 ${sty.bg} ${sty.text}`}>
                       {isOverdue ? "overdue" : task.status.replace("_", " ")}
                     </span>
                   </div>
                 );
-              })}
-            </div>
-          )}
+              })
+            )}
+          </div>
 
-          <Link
-            href="/tasks"
-            className="mt-4 self-start flex items-center gap-2 text-primary text-sm font-bold uppercase tracking-wide hover:translate-x-1 transition-transform"
-          >
-            View All Tasks <ArrowRight className="h-4 w-4" />
-          </Link>
+          <div className="border-t border-outline-variant/15 pt-4 flex justify-between items-center">
+            <span className="text-xs text-on-surface-variant/60 font-semibold">Total: {data.openTasks} tasks pending</span>
+            <Link href="/tasks" className="text-xs font-bold text-primary hover:underline flex items-center gap-1 uppercase tracking-wider">
+              Work Board <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
         </div>
+
       </div>
 
-      {/* ═══ QUICK NAVIGATION ════════════════════════════════════ */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {/* ─── DYNAMIC UTILITY TILES ──────────────────────────── */}
+      <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { icon: Wrench, label: "Maintenance", desc: "Home assets & repairs", href: "/maintenance", color: "text-blue-500", gradient: "from-blue-500/10 to-transparent" },
-          { icon: CreditCard, label: "Subscriptions", desc: "Monthly services", href: "/subscriptions", color: "text-purple-500", gradient: "from-purple-500/10 to-transparent" },
-          { icon: Plane, label: "Holiday Plan", desc: "Trips & vacations", href: "/holiday", color: "text-amber-500", gradient: "from-amber-500/10 to-transparent" },
-          { icon: FileText, label: "Documents", desc: "Family documents", href: "/documents", color: "text-emerald-500", gradient: "from-emerald-500/10 to-transparent" },
-        ].map((link) => {
+          { icon: Wrench, label: "Maintenance", desc: "Service assets", href: "/maintenance", color: "text-blue-600", bg: "from-blue-500/10 to-transparent" },
+          { icon: CreditCard, label: "Subscriptions", desc: "Recurring plans", href: "/subscriptions", color: "text-purple-600", bg: "from-purple-500/10 to-transparent" },
+          { icon: Plane, label: "Holiday Planner", desc: "Trips & packing", href: "/holiday", color: "text-amber-600", bg: "from-amber-500/10 to-transparent" },
+          { icon: FileText, label: "Documents", desc: "Family archives", href: "/documents", color: "text-emerald-600", bg: "from-emerald-500/10 to-transparent" },
+        ].map((link, idx) => {
           const Icon = link.icon;
           return (
             <Link
-              key={link.label}
+              key={idx}
               href={link.href}
-              className={`glass-card rounded-lg p-5 flex flex-col gap-3 group bg-gradient-to-br ${link.gradient}`}
+              className={`bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/20 flex flex-col gap-3 group bg-gradient-to-br ${link.bg} transition-all duration-200 active:scale-[0.98] hover:border-outline-variant/40`}
             >
-              <div className={`w-9 h-9 rounded-lg flex items-center justify-center bg-white/60 shadow-sm ${link.color}`}>
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center bg-white border border-outline-variant/10 shadow-xs ${link.color}`}>
                 <Icon className="h-4.5 w-4.5" />
               </div>
               <div>
-                <p className="text-sm font-bold text-on-surface group-hover:text-primary transition-colors">{link.label}</p>
-                <p className="text-xs text-on-surface-variant/60 font-medium mt-0.5">{link.desc}</p>
+                <p className="text-xs font-bold text-on-surface group-hover:text-primary transition-colors">{link.label}</p>
+                <p className="text-[10px] text-on-surface-variant/70 font-semibold mt-0.5">{link.desc}</p>
               </div>
-              <ArrowRight className="h-4 w-4 text-on-surface-variant/20 group-hover:text-primary group-hover:translate-x-1 transition-all duration-300 mt-auto self-end" />
+              <ArrowRight className="h-3.5 w-3.5 text-on-surface-variant/30 group-hover:text-primary group-hover:translate-x-0.5 transition-all mt-auto self-end" />
             </Link>
           );
         })}
-      </div>
+      </section>
+
     </div>
   );
 }

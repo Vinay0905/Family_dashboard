@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect, @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -15,17 +16,127 @@ import {
   Wallet,
   X,
   Search,
-  ArrowUpDown,
-  DollarSign,
-  CheckCircle2
+  CheckCircle2,
+  Edit,
+  Map,
+  Clock,
+  CloudSun,
+  Copy,
+  FileText
 } from "lucide-react";
 
-export default function HolidayPage() {
+interface PackingItem {
+  name: string;
+  packed: boolean;
+  category: string;
+}
+
+interface HolidayPlan {
+  id: string;
+  family_id: string;
+  created_by: string;
+  destination: string;
+  start_date: string;
+  end_date: string;
+  budget_estimate: number | null;
+  notes: string | null;
+  packing_list: PackingItem[] | string[] | any;
+  created_at?: string;
+}
+
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return { text: "Morning Adventure", emoji: "🌅" };
+  if (hour < 18) return { text: "Afternoon Sunshine", emoji: "☀️" };
+  return { text: "Evening Starlight", emoji: "🌙" };
+}
+
+function getDestinationInfo(destination: string) {
+  const dest = destination.toLowerCase();
+  if (dest.includes("santorini") || dest.includes("greece")) {
+    return {
+      weather: "28°C Sunny",
+      timezone: "UTC +3",
+      image: "https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?auto=format&fit=crop&w=800&q=80",
+    };
+  }
+  if (dest.includes("hawaii") || dest.includes("honolulu") || dest.includes("maui")) {
+    return {
+      weather: "26°C Tropical",
+      timezone: "UTC -10",
+      image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80",
+    };
+  }
+  if (dest.includes("paris") || dest.includes("france")) {
+    return {
+      weather: "19°C Mild",
+      timezone: "UTC +1",
+      image: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=800&q=80",
+    };
+  }
+  if (dest.includes("goa") || dest.includes("india")) {
+    return {
+      weather: "31°C Humid",
+      timezone: "UTC +5:30",
+      image: "https://images.unsplash.com/photo-1506477331477-33d5d8b3dc85?auto=format&fit=crop&w=800&q=80",
+    };
+  }
+  if (dest.includes("tokyo") || dest.includes("japan") || dest.includes("kyoto")) {
+    return {
+      weather: "22°C Clear",
+      timezone: "UTC +9",
+      image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=800&q=80",
+    };
+  }
+  if (dest.includes("london") || dest.includes("uk") || dest.includes("england")) {
+    return {
+      weather: "17°C Drizzle",
+      timezone: "UTC +0",
+      image: "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?auto=format&fit=crop&w=800&q=80",
+    };
+  }
+  if (dest.includes("rome") || dest.includes("italy") || dest.includes("venice") || dest.includes("florence")) {
+    return {
+      weather: "25°C Warm",
+      timezone: "UTC +1",
+      image: "https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=800&q=80",
+    };
+  }
+  // Default fallback
+  return {
+    weather: "24°C Perfect",
+    timezone: "UTC +1",
+    image: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80",
+  };
+}
+
+const normalizePackingList = (list: any): PackingItem[] => {
+  return (Array.isArray(list) ? list : []).map((item: any) => {
+    if (typeof item === "string") {
+      let category = "Clothing";
+      const name = item.toLowerCase();
+      if (name.includes("passport") || name.includes("ticket") || name.includes("visa") || name.includes("doc") || name.includes("insur")) {
+        category = "Essentials";
+      } else if (name.includes("charger") || name.includes("camera") || name.includes("phone") || name.includes("adapter") || name.includes("bank") || name.includes("tech")) {
+        category = "Gear & Tech";
+      }
+      return { name: item, packed: false, category };
+    }
+    return {
+      name: item?.name || "",
+      packed: !!item?.packed,
+      category: item?.category || "Clothing"
+    };
+  });
+};
+
+export default function NewHolidayPage() {
   const router = useRouter();
   const supabase = createClient();
 
   const [loading, setLoading] = useState(true);
-  const [plans, setPlans] = useState<any[]>([]);
+  const [plans, setPlans] = useState<HolidayPlan[]>([]);
+  const [activePlanId, setActivePlanId] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [familyId, setFamilyId] = useState<string | null>(null);
 
@@ -33,9 +144,9 @@ export default function HolidayPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortField, setSortField] = useState<"start_date" | "budget">("start_date");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc"); // Default earliest first
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
-  // Modal Form State
+  // Create Form State
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [destination, setDestination] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -44,6 +155,23 @@ export default function HolidayPage() {
   const [notes, setNotes] = useState("");
   const [packingList, setPackingList] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Edit Form State
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editDestination, setEditDestination] = useState("");
+  const [editStartDate, setEditStartDate] = useState("");
+  const [editEndDate, setEditEndDate] = useState("");
+  const [editBudgetEstimate, setEditBudgetEstimate] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+
+  // Live updates states
+  const [budgetValue, setBudgetValue] = useState<number>(0);
+  const [notesValue, setNotesValue] = useState("");
+  const [notesStatus, setNotesStatus] = useState("Saved");
+
+  // Add packing item state
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemCategory, setNewItemCategory] = useState("Clothing");
 
   useEffect(() => {
     async function loadData() {
@@ -77,6 +205,9 @@ export default function HolidayPage() {
 
         if (plansData) {
           setPlans(plansData);
+          if (plansData.length > 0) {
+            setActivePlanId(plansData[0].id);
+          }
         }
       } catch (err) {
         console.error("Error loading plans:", err);
@@ -88,6 +219,18 @@ export default function HolidayPage() {
     loadData();
   }, [supabase, router]);
 
+  // Find active plan
+  const activePlan = plans.find(p => p.id === activePlanId) || null;
+
+  // Sync details inputs when active plan changes
+  useEffect(() => {
+    if (activePlan) {
+      setBudgetValue(activePlan.budget_estimate || 0);
+      setNotesValue(activePlan.notes || "");
+      setNotesStatus("Saved");
+    }
+  }, [activePlan]);
+
   const handleCreatePlan = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!destination.trim() || !startDate || !endDate || !familyId || !currentUser) return;
@@ -95,7 +238,16 @@ export default function HolidayPage() {
     setIsSubmitting(true);
     try {
       const packingArray = packingList
-        ? packingList.split(",").map((s) => s.trim()).filter(Boolean)
+        ? packingList.split(",").map((s) => s.trim()).filter(Boolean).map(item => {
+            let category = "Clothing";
+            const name = item.toLowerCase();
+            if (name.includes("passport") || name.includes("ticket") || name.includes("visa") || name.includes("doc") || name.includes("insur")) {
+              category = "Essentials";
+            } else if (name.includes("charger") || name.includes("camera") || name.includes("phone") || name.includes("adapter") || name.includes("bank") || name.includes("tech")) {
+              category = "Gear & Tech";
+            }
+            return { name: item, packed: false, category };
+          })
         : [];
 
       const { data: newPlan, error } = await supabase
@@ -116,6 +268,7 @@ export default function HolidayPage() {
       if (error) throw error;
 
       setPlans((prev) => [...prev, newPlan]);
+      setActivePlanId(newPlan.id);
       setDestination("");
       setStartDate("");
       setEndDate("");
@@ -131,21 +284,69 @@ export default function HolidayPage() {
     }
   };
 
+  const handleOpenEditModal = () => {
+    if (!activePlan) return;
+    setEditDestination(activePlan.destination);
+    setEditStartDate(activePlan.start_date);
+    setEditEndDate(activePlan.end_date);
+    setEditBudgetEstimate(activePlan.budget_estimate ? String(activePlan.budget_estimate) : "");
+    setEditNotes(activePlan.notes || "");
+    setShowEditModal(true);
+  };
+
+  const handleEditPlan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activePlan || !editDestination.trim() || !editStartDate || !editEndDate) return;
+
+    setIsSubmitting(true);
+    try {
+      const { data: updatedPlan, error } = await supabase
+        .from("holiday_plans")
+        .update({
+          destination: editDestination.trim(),
+          start_date: editStartDate,
+          end_date: editEndDate,
+          budget_estimate: editBudgetEstimate ? Number(editBudgetEstimate) : null,
+          notes: editNotes.trim() || null
+        })
+        .eq("id", activePlan.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setPlans(prev => prev.map(p => p.id === activePlan.id ? updatedPlan : p));
+      setShowEditModal(false);
+    } catch (err) {
+      console.error("Failed to update plan:", err);
+      alert("Failed to update plan.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleDeletePlan = async (planId: string) => {
     if (!confirm("Are you sure you want to delete this trip plan?")) return;
 
     try {
       const { error } = await supabase.from("holiday_plans").delete().eq("id", planId);
       if (error) throw error;
-      setPlans((prev) => prev.filter((p) => p.id !== planId));
+      
+      const updatedPlans = plans.filter((p) => p.id !== planId);
+      setPlans(updatedPlans);
+      if (updatedPlans.length > 0) {
+        setActivePlanId(updatedPlans[0].id);
+      } else {
+        setActivePlanId(null);
+      }
     } catch (err) {
       console.error("Failed to delete plan:", err);
       alert("Failed to delete plan.");
     }
   };
 
-  const handleLogExpense = async (plan: any) => {
-    if (!currentUser || !familyId) return;
+  const handleLogExpense = async (plan: HolidayPlan) => {
+    if (!currentUser || !familyId || !plan.budget_estimate) return;
 
     try {
       const { error } = await supabase.from("expenses").insert({
@@ -159,10 +360,144 @@ export default function HolidayPage() {
       });
 
       if (error) throw error;
-      alert(`Trip budget of ₹${plan.budget_estimate} successfully logged as travel expense!`);
+      alert(`Trip budget of ₹${Number(plan.budget_estimate).toLocaleString("en-IN")} successfully logged as travel expense!`);
     } catch (err) {
       console.error("Failed to log holiday expense:", err);
       alert("Failed to log holiday expense.");
+    }
+  };
+
+  // Live update: Budget Save (on blur or release slider)
+  const handleBudgetSave = async () => {
+    if (!activePlan) return;
+    if (budgetValue === activePlan.budget_estimate) return;
+
+    try {
+      const { data: updatedPlan, error } = await supabase
+        .from("holiday_plans")
+        .update({ budget_estimate: budgetValue || null })
+        .eq("id", activePlan.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      setPlans(prev => prev.map(p => p.id === activePlan.id ? updatedPlan : p));
+    } catch (err) {
+      console.error("Failed to update budget:", err);
+    }
+  };
+
+  // Live update: Notes Save (on blur)
+  const handleNotesSave = async () => {
+    if (!activePlan) return;
+    if (notesValue.trim() === (activePlan.notes || "").trim()) return;
+
+    setNotesStatus("Saving...");
+    try {
+      const { data: updatedPlan, error } = await supabase
+        .from("holiday_plans")
+        .update({ notes: notesValue.trim() || null })
+        .eq("id", activePlan.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      setPlans(prev => prev.map(p => p.id === activePlan.id ? updatedPlan : p));
+      setNotesStatus("Autosaved just now");
+    } catch (err) {
+      console.error("Failed to save notes:", err);
+      setNotesStatus("Failed to save");
+    }
+  };
+
+  // Toggle checklist item packed status
+  const handleTogglePackingItem = async (itemName: string) => {
+    if (!activePlan) return;
+    const normalized = normalizePackingList(activePlan.packing_list);
+    const updatedList = normalized.map(item =>
+      item.name === itemName ? { ...item, packed: !item.packed } : item
+    );
+
+    try {
+      const { data: updatedPlan, error } = await supabase
+        .from("holiday_plans")
+        .update({ packing_list: updatedList as any })
+        .eq("id", activePlan.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      setPlans(prev => prev.map(p => p.id === activePlan.id ? updatedPlan : p));
+    } catch (err) {
+      console.error("Failed to toggle checklist item:", err);
+    }
+  };
+
+  // Add new packing list item
+  const handleAddPackingItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activePlan || !newItemName.trim()) return;
+
+    const normalized = normalizePackingList(activePlan.packing_list);
+    const newItem: PackingItem = {
+      name: newItemName.trim(),
+      packed: false,
+      category: newItemCategory
+    };
+
+    if (normalized.some(item => item.name.toLowerCase() === newItem.name.toLowerCase())) {
+      alert("This item already exists.");
+      return;
+    }
+
+    const updatedList = [...normalized, newItem];
+
+    try {
+      const { data: updatedPlan, error } = await supabase
+        .from("holiday_plans")
+        .update({ packing_list: updatedList as any })
+        .eq("id", activePlan.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      setPlans(prev => prev.map(p => p.id === activePlan.id ? updatedPlan : p));
+      setNewItemName("");
+    } catch (err) {
+      console.error("Failed to add packing item:", err);
+    }
+  };
+
+  // Remove packing list item
+  const handleRemovePackingItem = async (itemName: string) => {
+    if (!activePlan) return;
+    const normalized = normalizePackingList(activePlan.packing_list);
+    const updatedList = normalized.filter(item => item.name !== itemName);
+
+    try {
+      const { data: updatedPlan, error } = await supabase
+        .from("holiday_plans")
+        .update({ packing_list: updatedList as any })
+        .eq("id", activePlan.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      setPlans(prev => prev.map(p => p.id === activePlan.id ? updatedPlan : p));
+    } catch (err) {
+      console.error("Failed to remove packing item:", err);
+    }
+  };
+
+  // Invite Copy Code Link
+  const handleInviteCopy = () => {
+    // Attempt to copy invite code from shell or local clipboard
+    // NewAppShell sidebar already provides this, but we can copy the family ID or a helper message
+    if (familyId) {
+      navigator.clipboard.writeText(familyId);
+      alert("Family Code copied! Share this code with members to invite them.");
+    } else {
+      alert("Family details loading...");
     }
   };
 
@@ -175,8 +510,8 @@ export default function HolidayPage() {
     }
   };
 
-  // Rule 15: Green for completed (past end date), Yellow for in progress (today is within trip dates), Grey for upcoming (future)
-  const getPlanStatusInfo = (plan: any) => {
+  // Rule 15: Status info
+  const getPlanStatusInfo = (plan: HolidayPlan) => {
     const today = new Date().toISOString().slice(0, 10);
     if (today > plan.end_date) {
       return {
@@ -202,7 +537,7 @@ export default function HolidayPage() {
     };
   };
 
-  // Filter & Sort
+  // Filter & Sort plans
   const filteredPlans = plans
     .filter((plan) => {
       const matchSearch =
@@ -215,7 +550,7 @@ export default function HolidayPage() {
       return matchSearch && matchStatus;
     })
     .sort((a, b) => {
-      let multiplier = sortDirection === "asc" ? 1 : -1;
+      const multiplier = sortDirection === "asc" ? 1 : -1;
       if (sortField === "budget") {
         return (Number(a.budget_estimate || 0) - Number(b.budget_estimate || 0)) * multiplier;
       } else {
@@ -223,196 +558,571 @@ export default function HolidayPage() {
       }
     });
 
+  if (loading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-sm text-on-surface-variant font-medium">Gathering family travel plans…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Greeting info
+  const greeting = getGreeting();
+
+  // Packing list items parsing
+  const activePackingItems = activePlan ? normalizePackingList(activePlan.packing_list) : [];
+  const packedCount = activePackingItems.filter(item => item.packed).length;
+  const totalPackingCount = activePackingItems.length;
+  const packingPercent = totalPackingCount > 0 ? Math.round((packedCount / totalPackingCount) * 100) : 0;
+
+  // Curated categories
+  const categoriesList = ["Essentials", "Clothing", "Gear & Tech"];
+
+  // Proportions of budget (30% flights, 45% stay, 15% food, 10% other)
+  const budgetBreakdown = {
+    flights: budgetValue * 0.3,
+    stay: budgetValue * 0.45,
+    food: budgetValue * 0.15,
+    other: budgetValue * 0.1,
+  };
+
   return (
-    <div className="space-y-8">
-      {/* Header Panel */}
-      <section className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="font-heading text-4xl text-on-surface tracking-tight font-extrabold">
+    <div className="space-y-6 max-w-7xl mx-auto font-sans">
+      {/* HEADER SECTION */}
+      <section className="bg-surface-container-lowest p-6 md:p-8 rounded-2xl border border-outline-variant/30 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-gradient-to-br from-primary/10 via-secondary/5 to-transparent blur-3xl pointer-events-none" />
+        
+        <div className="relative z-10 space-y-1">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-on-surface-variant/80">
+            <span>{greeting.emoji}</span>
+            <span>{greeting.text}</span>
+          </div>
+          <h2 className="font-quicksand text-3xl md:text-4xl font-extrabold text-on-surface tracking-tight">
             Holiday <span className="text-primary italic">Planner</span>
-          </h1>
-          <p className="font-sans text-sm text-on-surface-variant mt-2 font-medium">
+          </h2>
+          <p className="text-sm text-on-surface-variant font-medium">
             Plan destinations, track travel budgets, and assemble checklists for family getaways.
           </p>
         </div>
-      </section>
 
-      {/* Filter and Search Controls */}
-      <section className="glass-card rounded p-4 shadow-sm flex flex-col sm:flex-row gap-3 items-center justify-between">
-        <div className="relative w-full sm:max-w-xs">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-on-surface-variant/60" />
-          <Input
-            placeholder="Search destination..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-surface-container-lowest border-outline-variant text-xs h-9 rounded"
-          />
-        </div>
-
-        <div className="flex gap-2 w-full sm:w-auto">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded border border-outline-variant bg-surface-container-lowest px-3 py-1.5 text-xs text-on-surface font-semibold outline-none focus:border-primary transition-all h-9"
+        <div className="relative z-10 flex gap-2">
+          <Button
+            onClick={() => setShowCreateModal(true)}
+            className="bg-primary hover:bg-primary/95 text-on-primary font-bold px-5 py-2.5 rounded-xl shadow-md active:scale-95 transition-all flex items-center gap-2 text-xs uppercase tracking-wider"
           >
-            <option value="all">All Statuses</option>
-            <option value="green">Completed (Green)</option>
-            <option value="yellow">In Progress (Yellow)</option>
-            <option value="grey">Upcoming (Grey)</option>
-          </select>
+            <Plus className="h-4 w-4" /> Plan New Trip
+          </Button>
         </div>
       </section>
 
-      {/* Tabular Plans Grid */}
-      <div className="glass-card rounded shadow-sm overflow-hidden border border-primary/10">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="bg-surface-container-low border-b border-primary/10 font-bold uppercase text-primary tracking-wider">
-                <th className="p-3.5 pl-4">Destination</th>
-                <th 
-                  onClick={() => toggleSort("start_date")}
-                  className="p-3.5 cursor-pointer hover:bg-primary/5 transition-colors select-none"
-                >
-                  <span className="items-center gap-1 inline-flex">
-                    Travel Dates <ArrowUpDown className="h-3 w-3 text-primary/60" />
-                  </span>
-                </th>
-                <th 
-                  onClick={() => toggleSort("budget")}
-                  className="p-3.5 cursor-pointer hover:bg-primary/5 transition-colors select-none text-right"
-                >
-                  <span className="items-center gap-1 inline-flex">
-                    Budget Estimate <ArrowUpDown className="h-3 w-3 text-primary/60" />
-                  </span>
-                </th>
-                <th className="p-3.5">Packing Items</th>
-                <th className="p-3.5">Status</th>
-                <th className="p-3.5">Notes</th>
-                <th className="p-3.5 pr-4 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-container">
-              {filteredPlans.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="p-10 text-center text-on-surface-variant/40 font-semibold italic bg-surface-container-lowest">
-                    No travel plans registered or match filters.
-                  </td>
-                </tr>
-              ) : (
-                filteredPlans.map((plan) => {
-                  const statusInfo = getPlanStatusInfo(plan);
-                  const packingItems = (Array.isArray(plan.packing_list) ? plan.packing_list : []) as string[];
+      {/* TWO-COLUMN LAYOUT */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        {/* LEFT COLUMN: LIST OF PLANS (col-span-4) */}
+        <section className="lg:col-span-4 bg-surface-container-lowest rounded-2xl p-5 border border-outline-variant/30 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-quicksand text-lg font-bold text-on-surface">Family Adventures</h3>
+            <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+              {plans.length} total
+            </span>
+          </div>
 
-                  return (
-                    <tr 
-                      key={plan.id} 
-                      className="bg-surface-container-lowest hover:bg-primary/[0.02] transition-colors"
-                    >
-                      <td className="p-3.5 pl-4 font-heading font-extrabold text-on-surface text-sm">
-                        {plan.destination}
-                      </td>
-                      <td className="p-3.5 font-mono font-bold text-on-surface">
-                        <span className="inline-flex items-center gap-1">
-                          <Calendar className="h-3 w-3 text-primary" />
-                          {new Date(plan.start_date).toLocaleDateString("en-IN", {
-                            day: "numeric",
-                            month: "short"
-                          })}
+          {/* Search and Filters */}
+          <div className="space-y-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-on-surface-variant/60" />
+              <Input
+                placeholder="Search destinations..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 bg-surface-container-low border-outline-variant/60 text-xs h-9 rounded-xl focus:ring-1 focus:ring-primary/40 focus:border-primary"
+              />
+            </div>
+            
+            <div className="flex gap-2">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="flex-1 rounded-xl border border-outline-variant/60 bg-surface-container-low px-3 py-1.5 text-xs text-on-surface font-semibold outline-none focus:border-primary/50 transition-all h-9 cursor-pointer"
+              >
+                <option value="all">All Statuses</option>
+                <option value="green">Completed</option>
+                <option value="yellow">In Progress</option>
+                <option value="grey">Upcoming</option>
+              </select>
+
+              <button
+                onClick={() => toggleSort("start_date")}
+                className="h-9 w-9 rounded-xl border border-outline-variant/60 bg-surface-container-low hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant/80 active:scale-95 transition-all"
+                title="Sort by Dates"
+              >
+                <Calendar className="h-4 w-4" />
+              </button>
+
+              <button
+                onClick={() => toggleSort("budget")}
+                className="h-9 w-9 rounded-xl border border-outline-variant/60 bg-surface-container-low hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant/80 active:scale-95 transition-all"
+                title="Sort by Budget"
+              >
+                <Wallet className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Vertical scroll list of plans */}
+          <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
+            {filteredPlans.length === 0 ? (
+              <div className="py-12 text-center text-on-surface-variant/40 font-medium italic text-xs">
+                No travel plans match the filters.
+              </div>
+            ) : (
+              filteredPlans.map((plan) => {
+                const isActive = plan.id === activePlanId;
+                const statusInfo = getPlanStatusInfo(plan);
+                const itemsCount = normalizePackingList(plan.packing_list).length;
+                const packed = normalizePackingList(plan.packing_list).filter(i => i.packed).length;
+                const progress = itemsCount > 0 ? Math.round((packed / itemsCount) * 100) : 0;
+
+                return (
+                  <div
+                    key={plan.id}
+                    onClick={() => setActivePlanId(plan.id)}
+                    className={`p-3.5 rounded-xl border text-left cursor-pointer transition-all duration-200 active:scale-[0.99] flex flex-col justify-between gap-2 shadow-xs ${
+                      isActive
+                        ? "bg-primary-container/10 border-primary shadow-sm"
+                        : "bg-surface hover:bg-surface-container-low border-outline-variant/20"
+                    }`}
+                  >
+                    <div className="flex justify-between items-start gap-2">
+                      <div>
+                        <h4 className={`font-quicksand font-bold text-sm ${isActive ? "text-primary" : "text-on-surface"}`}>
+                          {plan.destination}
+                        </h4>
+                        <p className="text-[10.5px] text-on-surface-variant/80 font-semibold mt-0.5 flex items-center gap-1">
+                          <Calendar className="h-3 w-3 text-on-surface-variant/60" />
+                          {new Date(plan.start_date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
                           {" - "}
-                          {new Date(plan.end_date).toLocaleDateString("en-IN", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric"
-                          })}
+                          {new Date(plan.end_date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                        </p>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-full border text-[9px] font-bold uppercase tracking-wide shrink-0 ${statusInfo.color}`}>
+                        {statusInfo.label}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center pt-2 border-t border-outline-variant/15 text-[10.5px] text-on-surface-variant/70 font-medium">
+                      <span className="font-semibold text-primary/95">
+                        {plan.budget_estimate ? `₹${Number(plan.budget_estimate).toLocaleString("en-IN")}` : "No budget"}
+                      </span>
+                      <span>
+                        {itemsCount > 0 ? `${progress}% packed` : "No checklist"}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </section>
+
+        {/* RIGHT COLUMN: DETAILED VIEW OF ACTIVE PLAN (col-span-8) */}
+        <section className="lg:col-span-8 space-y-6">
+          
+          {!activePlan ? (
+            <div className="bg-surface-container-lowest rounded-2xl p-16 border border-outline-variant/30 text-center flex flex-col items-center justify-center gap-4">
+              <Luggage className="h-16 w-16 text-on-surface-variant/30 stroke-[1.2]" />
+              <div className="space-y-1">
+                <h4 className="font-quicksand font-bold text-lg text-on-surface">No Adventures Planned Yet</h4>
+                <p className="text-sm text-on-surface-variant max-w-sm">
+                  Get your family getaways organized! Start by clicking &quot;Plan New Trip&quot; to register your next holiday.
+                </p>
+              </div>
+              <Button
+                onClick={() => setShowCreateModal(true)}
+                className="mt-2 bg-primary hover:bg-primary/95 text-on-primary font-bold px-6 py-2.5 rounded-xl shadow-md"
+              >
+                Create a Trip Plan
+              </Button>
+            </div>
+          ) : (
+            <>
+              {/* Plan Header Card */}
+              <div className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/30 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider mb-1.5">
+                    <Plane className="h-4 w-4 shrink-0" />
+                    <span>Holiday Details & Itinerary</span>
+                  </div>
+                  <h3 className="font-quicksand text-2xl font-extrabold text-on-surface">
+                    {activePlan.destination}
+                  </h3>
+                  <p className="text-xs text-on-surface-variant font-semibold mt-1">
+                    {new Date(activePlan.start_date).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}
+                    {" – "}
+                    {new Date(activePlan.end_date).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
+                    {` • ${Math.round((new Date(activePlan.end_date).getTime() - new Date(activePlan.start_date).getTime()) / (1000 * 3600 * 24)) + 1} Days`}
+                  </p>
+                </div>
+
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    onClick={handleInviteCopy}
+                    className="px-3.5 py-2 rounded-xl border border-outline-variant bg-surface hover:bg-surface-container-low text-on-surface font-bold text-xs hover:border-outline transition-all flex items-center gap-1.5 active:scale-95"
+                    title="Invite Family"
+                  >
+                    <Copy className="h-3.5 w-3.5" /> Invite Family
+                  </button>
+                  <button
+                    onClick={handleOpenEditModal}
+                    className="px-3.5 py-2 rounded-xl bg-secondary text-on-secondary font-bold text-xs hover:bg-secondary/95 transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+                  >
+                    <Edit className="h-3.5 w-3.5" /> Edit Trip
+                  </button>
+                </div>
+              </div>
+
+              {/* Bento Grid Detail Pane */}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                
+                {/* Hero image and weather card (col-span-8) */}
+                <div className="md:col-span-8 bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-sm overflow-hidden relative group">
+                  <div 
+                    className="absolute inset-0 z-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+                    style={{ backgroundImage: `url('${getDestinationInfo(activePlan.destination).image}')` }}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent"></div>
+                  </div>
+
+                  <div className="relative z-10 h-64 p-5 flex flex-col justify-end text-white select-none">
+                    <div className="flex justify-between items-end">
+                      <div>
+                        <span className="bg-secondary text-on-secondary px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider mb-2 inline-block">
+                          Active Destination
                         </span>
-                      </td>
-                      <td className="p-3.5 text-right font-mono font-bold text-on-surface">
-                        {plan.budget_estimate ? (
-                          `₹${Number(plan.budget_estimate).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
-                        ) : (
-                          <span className="italic opacity-40 font-normal">N/A</span>
-                        )}
-                      </td>
-                      <td className="p-3.5 font-sans">
-                        {packingItems.length > 0 ? (
-                          <div className="flex flex-wrap gap-1 max-w-xs">
-                            {packingItems.map((item, idx) => (
-                              <span
-                                key={idx}
-                                className="inline-flex items-center rounded border border-secondary/20 bg-secondary/10 px-1.5 py-0.5 text-[8px] font-bold text-secondary uppercase"
-                              >
-                                {item}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="italic opacity-40">Empty</span>
-                        )}
-                      </td>
-                      <td className="p-3.5">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-widest ${statusInfo.color}`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${statusInfo.dotColor}`} />
-                          {statusInfo.label}
-                        </span>
-                      </td>
-                      <td className="p-3.5 font-sans text-on-surface-variant max-w-xs truncate" title={plan.notes}>
-                        {plan.notes || <span className="italic opacity-40 font-normal">None</span>}
-                      </td>
-                      <td className="p-3.5 pr-4 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          {plan.budget_estimate && (
-                            <button
-                              onClick={() => handleLogExpense(plan)}
-                              className="flex items-center gap-1 py-1 px-2.5 bg-primary/10 hover:bg-primary text-primary hover:text-white border border-primary/20 hover:border-transparent text-[9px] font-bold uppercase tracking-wider rounded transition-all cursor-pointer"
-                              title="Log Budget as Expense"
-                            >
-                              <CheckCircle2 className="h-2.5 w-2.5" /> Log Exp
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleDeletePlan(plan.id)}
-                            className="p-1.5 text-on-surface-variant/40 hover:text-primary transition-all rounded hover:bg-primary/10 cursor-pointer"
-                            title="Remove Plan"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                        <h4 className="font-quicksand text-xl font-bold">{activePlan.destination}</h4>
+                        <div className="flex items-center gap-3 mt-1 text-[11px] font-medium text-white/90">
+                          <span className="flex items-center gap-1"><CloudSun className="h-3.5 w-3.5" /> {getDestinationInfo(activePlan.destination).weather}</span>
+                          <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {getDestinationInfo(activePlan.destination).timezone}</span>
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                      </div>
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activePlan.destination)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md flex items-center justify-center text-white transition-all active:scale-95"
+                        title="View on Google Maps"
+                      >
+                        <Map className="h-4.5 w-4.5" />
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Progress Stats summary card (col-span-4) */}
+                <div className="md:col-span-4 bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/30 shadow-sm flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <h4 className="font-quicksand text-sm font-bold text-on-surface uppercase tracking-wider">
+                      Trip Overview
+                    </h4>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-[10px] text-on-surface-variant font-bold uppercase">Status</p>
+                        <div className="mt-1 flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1.5 ${getPlanStatusInfo(activePlan).color}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${getPlanStatusInfo(activePlan).dotColor}`} />
+                            {getPlanStatusInfo(activePlan).label}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] text-on-surface-variant font-bold uppercase">Budget estimate</p>
+                        <p className="text-lg font-bold font-quicksand text-primary mt-0.5">
+                          {activePlan.budget_estimate ? `₹${Number(activePlan.budget_estimate).toLocaleString("en-IN")}` : "N/A"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] text-on-surface-variant font-bold uppercase">Packing checklist</p>
+                        <p className="text-xs font-semibold text-on-surface mt-0.5">
+                          {totalPackingCount > 0 ? `${packedCount} / ${totalPackingCount} items (${packingPercent}%)` : "No items listed"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {activePlan.budget_estimate && (
+                    <button
+                      onClick={() => handleLogExpense(activePlan)}
+                      className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-primary/10 hover:bg-primary text-primary hover:text-white border border-primary/20 hover:border-transparent text-xs font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer active:scale-95 shadow-2xs mt-4"
+                      title="Log Budget as Travel Expense"
+                    >
+                      <CheckCircle2 className="h-4.5 w-4.5" /> Log Budget Exp
+                    </button>
+                  )}
+                </div>
+
+                {/* Budget Estimator / Tracker Card (col-span-8) */}
+                <div className="md:col-span-8 bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/30 shadow-sm space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-quicksand text-base font-bold text-on-surface flex items-center gap-1.5">
+                      <Wallet className="h-4.5 w-4.5 text-primary" /> Budget Tracker
+                    </h4>
+                    <span className="text-xs font-bold text-on-surface-variant/80">
+                      Total: ₹{budgetValue.toLocaleString("en-IN")}
+                    </span>
+                  </div>
+
+                  {/* Range Slider for Budget */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="range"
+                        min="0"
+                        max="1000000"
+                        step="5000"
+                        value={budgetValue}
+                        onChange={(e) => setBudgetValue(Number(e.target.value))}
+                        onMouseUp={handleBudgetSave}
+                        onTouchEnd={handleBudgetSave}
+                        className="w-full accent-primary h-2 bg-outline-variant/40 rounded-lg appearance-none cursor-pointer"
+                      />
+                      <div className="relative shrink-0 w-28">
+                        <span className="absolute left-2.5 top-1.5 text-xs font-bold text-on-surface-variant">₹</span>
+                        <Input
+                          type="number"
+                          value={budgetValue || ""}
+                          onChange={(e) => setBudgetValue(Number(e.target.value))}
+                          onBlur={handleBudgetSave}
+                          className="pl-6 h-8 text-xs font-bold bg-surface-container-low border-outline-variant text-on-surface rounded-lg focus:ring-primary/30"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-on-surface-variant/60 font-semibold italic">
+                      Drag slider or edit value to adjust budget. Let go or click outside to auto-save.
+                    </p>
+                  </div>
+
+                  {/* Proportional breakdown cards */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="p-2.5 rounded-xl bg-blue-50/70 border border-blue-100 flex flex-col justify-between">
+                      <span className="text-[9.5px] font-bold text-blue-800 uppercase">Flights (30%)</span>
+                      <span className="text-xs font-bold text-on-surface mt-1">₹{Math.round(budgetBreakdown.flights).toLocaleString("en-IN")}</span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-100 flex flex-col justify-between">
+                      <span className="text-[9.5px] font-bold text-emerald-800 uppercase">Stay (45%)</span>
+                      <span className="text-xs font-bold text-on-surface mt-1">₹{Math.round(budgetBreakdown.stay).toLocaleString("en-IN")}</span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-100 flex flex-col justify-between">
+                      <span className="text-[9.5px] font-bold text-amber-800 uppercase">Food (15%)</span>
+                      <span className="text-xs font-bold text-on-surface mt-1">₹{Math.round(budgetBreakdown.food).toLocaleString("en-IN")}</span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
+                      <span className="text-[9.5px] font-bold text-slate-800 uppercase">Other (10%)</span>
+                      <span className="text-xs font-bold text-on-surface mt-1">₹{Math.round(budgetBreakdown.other).toLocaleString("en-IN")}</span>
+                    </div>
+                  </div>
+
+                  {/* Visual proportional breakdown progress bar */}
+                  <div className="space-y-1 pt-1">
+                    <div className="w-full h-3.5 bg-outline-variant/30 rounded-full overflow-hidden flex shadow-xs border border-outline-variant/10">
+                      <div className="h-full bg-blue-500 transition-all duration-300" style={{ width: "30%" }} title="Flights" />
+                      <div className="h-full bg-emerald-500 transition-all duration-300" style={{ width: "45%" }} title="Stay" />
+                      <div className="h-full bg-amber-500 transition-all duration-300" style={{ width: "15%" }} title="Food" />
+                      <div className="h-full bg-slate-400 transition-all duration-300" style={{ width: "10%" }} title="Other" />
+                    </div>
+                    <div className="flex justify-between text-[9px] text-on-surface-variant font-bold">
+                      <span>Proportional allocations</span>
+                      <span>Target: 100%</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Packing List Card (col-span-4 - moves into grid for desktop, stacks on mobile) */}
+                <div className="md:col-span-4 bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/30 shadow-sm flex flex-col space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-quicksand text-base font-bold text-on-surface flex items-center gap-1.5">
+                      <Luggage className="h-4.5 w-4.5 text-secondary" /> Packing Checklist
+                    </h4>
+                    <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-full text-[9px] font-bold uppercase tracking-wider shrink-0">
+                      {packingPercent}% Done
+                    </span>
+                  </div>
+
+                  {/* List grouped by category */}
+                  <div className="space-y-4 flex-1 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                    {activePackingItems.length === 0 ? (
+                      <div className="py-8 text-center text-on-surface-variant/40 font-medium italic text-xs">
+                        No checklist items. Add one below!
+                      </div>
+                    ) : (
+                      categoriesList.map((catName) => {
+                        const catItems = activePackingItems.filter(i => i.category === catName);
+                        if (catItems.length === 0) return null;
+
+                        return (
+                          <div key={catName} className="space-y-1.5">
+                            <h5 className="text-[10px] font-extrabold uppercase tracking-wide text-on-surface-variant/60 flex items-center gap-1">
+                              <span className={`h-1.5 w-1.5 rounded-full ${
+                                catName === "Essentials" ? "bg-primary" : catName === "Clothing" ? "bg-secondary" : "bg-emerald-500"
+                              }`} />
+                              {catName}
+                            </h5>
+                            <ul className="space-y-1">
+                              {catItems.map((item, idx) => (
+                                <li 
+                                  key={idx} 
+                                  className="flex items-center justify-between gap-2 p-1.5 rounded-lg hover:bg-surface-container-low transition-colors group"
+                                >
+                                  <label className="flex items-center gap-2 cursor-pointer flex-1 min-w-0">
+                                    <input
+                                      type="checkbox"
+                                      checked={item.packed}
+                                      onChange={() => handleTogglePackingItem(item.name)}
+                                      className="w-4 h-4 rounded border border-outline-variant text-primary focus:ring-0 cursor-pointer transition-all"
+                                    />
+                                    <span className={`text-xs truncate font-medium ${
+                                      item.packed ? "line-through text-on-surface-variant/50 font-normal" : "text-on-surface font-semibold"
+                                    }`}>
+                                      {item.name}
+                                    </span>
+                                  </label>
+                                  <button
+                                    onClick={() => handleRemovePackingItem(item.name)}
+                                    className="p-1 opacity-0 group-hover:opacity-100 text-on-surface-variant/40 hover:text-primary rounded hover:bg-primary/5 transition-all shrink-0 cursor-pointer"
+                                    title="Remove item"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {/* Add packing item form */}
+                  <form onSubmit={handleAddPackingItem} className="pt-3 border-t border-outline-variant/15 space-y-2">
+                    <div className="flex gap-1.5">
+                      <Input
+                        placeholder="Add checklist item..."
+                        value={newItemName}
+                        onChange={(e) => setNewItemName(e.target.value)}
+                        className="h-8 text-xs bg-surface-container-low border-outline-variant/60 rounded-lg flex-1 focus:ring-primary/30"
+                      />
+                      <select
+                        value={newItemCategory}
+                        onChange={(e) => setNewItemCategory(e.target.value)}
+                        className="h-8 rounded-lg border border-outline-variant/60 bg-surface-container-low px-1.5 text-[10px] text-on-surface font-bold outline-none cursor-pointer shrink-0"
+                      >
+                        <option value="Clothing">Clothing</option>
+                        <option value="Essentials">Essentials</option>
+                        <option value="Gear & Tech">Gear & Tech</option>
+                      </select>
+                      <button
+                        type="submit"
+                        className="h-8 w-8 rounded-lg bg-secondary text-on-secondary hover:bg-secondary/95 flex items-center justify-center shrink-0 active:scale-90 transition-all font-bold"
+                        title="Add item"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </form>
+
+                  {/* Packing Progress Bar */}
+                  {totalPackingCount > 0 && (
+                    <div className="space-y-1.5 pt-2 border-t border-outline-variant/15">
+                      <div className="flex justify-between text-[10px] text-on-surface-variant font-bold">
+                        <span>Checklist Completion</span>
+                        <span>{packingPercent}%</span>
+                      </div>
+                      <div className="w-full bg-outline-variant/20 h-1.5 rounded-full overflow-hidden">
+                        <div 
+                          className="bg-emerald-500 h-full transition-all duration-500" 
+                          style={{ width: `${packingPercent}%` }} 
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Notes & Shared Itinerary ideas (col-span-12) */}
+                <div className="col-span-12 bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/30 shadow-sm space-y-3">
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-quicksand text-base font-bold text-on-surface flex items-center gap-1.5">
+                      <FileText className="h-4.5 w-4.5 text-primary" /> Trip Notes & Itinerary Ideas
+                    </h4>
+                    
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider inline-flex items-center gap-1 ${
+                        notesStatus === "Saving..." ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
+                      }`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${notesStatus === "Saving..." ? "bg-amber-500 animate-pulse" : "bg-emerald-500"}`} />
+                        {notesStatus}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                    <textarea
+                      value={notesValue}
+                      onChange={(e) => {
+                        setNotesValue(e.target.value);
+                        setNotesStatus("Editing...");
+                      }}
+                      onBlur={handleNotesSave}
+                      className="w-full min-h-[140px] p-4 rounded-xl border border-outline-variant/50 focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all bg-surface-container-low text-xs font-semibold text-on-surface-variant placeholder:text-on-surface-variant/40 outline-none"
+                      placeholder="Add specific details, flight codes, hotel name, reservations, itinerary ideas..."
+                    />
+                    <div className="absolute bottom-3 right-3 flex items-center gap-1 text-[9px] text-on-surface-variant/40 font-bold">
+                      <span>Click outside textarea to save changes</span>
+                    </div>
+                  </div>
+
+                  {/* Action delete footer */}
+                  <div className="flex justify-between items-center pt-3 border-t border-outline-variant/15">
+                    <span className="text-[10px] text-on-surface-variant/60 font-semibold">
+                      Created by you for Henderson Family Record
+                    </span>
+                    <button
+                      onClick={() => handleDeletePlan(activePlan.id)}
+                      className="text-xs font-bold text-primary hover:text-primary-container flex items-center gap-1 active:scale-95 transition-all p-1.5 hover:bg-primary/5 rounded-xl cursor-pointer"
+                      title="Remove Trip Plan"
+                    >
+                      <Trash2 className="h-4 w-4" /> Remove Plan
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            </>
+          )}
+
+        </section>
+
       </div>
 
-      {/* Button to open creation modal */}
-      <div className="flex justify-center pt-2">
-        <Button
-          onClick={() => setShowCreateModal(true)}
-          className="bg-primary hover:bg-primary-container text-white px-8 h-12 gap-2 text-sm font-bold shadow-lg shadow-primary/20 rounded cursor-pointer animate-neon-text active:scale-95 transition-all"
-        >
-          <Plus className="h-5 w-5" /> Plan New Trip
-        </Button>
-      </div>
-
-      {/* Plan New Trip Modal */}
+      {/* PLAN NEW TRIP MODAL */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div 
-            className="fixed inset-0 bg-black/30 backdrop-blur-xs" 
+            className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity duration-300 animate-in fade-in" 
             onClick={() => setShowCreateModal(false)} 
           />
 
           <form 
             onSubmit={handleCreatePlan} 
-            className="relative z-10 w-full max-w-lg glass-card rounded p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150"
+            className="relative z-10 w-full max-w-lg bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150"
           >
-            <div className="flex items-center justify-between pb-3 border-b border-primary/10">
-              <h3 className="font-heading text-lg font-bold text-primary flex items-center gap-2">
-                <Plane className="h-5 w-5" /> Plan New Trip
+            <div className="flex items-center justify-between pb-3 border-b border-outline-variant/35">
+              <h3 className="font-quicksand text-lg font-bold text-primary flex items-center gap-2">
+                <Plane className="h-5 w-5 shrink-0" /> Plan New Family Trip
               </h3>
               <button 
                 type="button"
@@ -428,10 +1138,10 @@ export default function HolidayPage() {
               <Input
                 id="destination"
                 type="text"
-                placeholder="e.g. Goa, Paris, Manali, Shimla"
+                placeholder="e.g. Goa, Paris, Santorini, Manali"
                 value={destination}
                 onChange={(e) => setDestination(e.target.value)}
-                className="bg-surface-container-lowest border-outline-variant rounded focus:border-primary text-xs"
+                className="bg-surface-container-low border-outline-variant focus:border-primary/50 text-xs rounded-xl focus:ring-primary/20"
                 required
               />
             </div>
@@ -444,7 +1154,7 @@ export default function HolidayPage() {
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="bg-surface-container-lowest border-outline-variant rounded focus:border-primary text-xs"
+                  className="bg-surface-container-low border-outline-variant focus:border-primary/50 text-xs rounded-xl focus:ring-primary/20 cursor-pointer"
                   required
                 />
               </div>
@@ -456,7 +1166,7 @@ export default function HolidayPage() {
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="bg-surface-container-lowest border-outline-variant rounded focus:border-primary text-xs"
+                  className="bg-surface-container-low border-outline-variant focus:border-primary/50 text-xs rounded-xl focus:ring-primary/20 cursor-pointer"
                   required
                 />
               </div>
@@ -465,14 +1175,14 @@ export default function HolidayPage() {
             <div className="space-y-1">
               <Label htmlFor="budget" className="text-[10px] font-bold uppercase tracking-wider text-primary">Budget Estimate (INR)</Label>
               <div className="relative">
-                <span className="absolute left-3 top-2.5 text-xs text-on-surface-variant font-bold">₹</span>
+                <span className="absolute left-3 top-2 text-xs text-on-surface-variant font-bold">₹</span>
                 <Input
                   id="budget"
                   type="number"
                   placeholder="0.00"
                   value={budgetEstimate}
                   onChange={(e) => setBudgetEstimate(e.target.value)}
-                  className="pl-7 bg-surface-container-lowest border-outline-variant rounded focus:border-primary text-xs font-bold"
+                  className="pl-7 bg-surface-container-low border-outline-variant focus:border-primary/50 text-xs font-bold rounded-xl focus:ring-primary/20"
                 />
               </div>
             </div>
@@ -482,10 +1192,10 @@ export default function HolidayPage() {
               <Input
                 id="notes"
                 type="text"
-                placeholder="e.g. Flight booking codes, hotel name..."
+                placeholder="Flight details, hotel reservation codes, dinner timings..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="bg-surface-container-lowest border-outline-variant rounded focus:border-primary text-xs"
+                className="bg-surface-container-low border-outline-variant focus:border-primary/50 text-xs rounded-xl focus:ring-primary/20"
               />
             </div>
 
@@ -494,23 +1204,126 @@ export default function HolidayPage() {
               <Input
                 id="packing"
                 type="text"
-                placeholder="Swimwear, Chargers, Passport, Warm clothes (comma separated)"
+                placeholder="Passport, Swimwear, Universal adapters, Sunscreen (comma separated)"
                 value={packingList}
                 onChange={(e) => setPackingList(e.target.value)}
-                className="bg-surface-container-lowest border-outline-variant rounded focus:border-primary text-xs"
+                className="bg-surface-container-low border-outline-variant focus:border-primary/50 text-xs rounded-xl focus:ring-primary/20"
               />
             </div>
 
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full mt-2 bg-primary hover:bg-primary-container text-white py-3 rounded active:scale-95 transition-all shadow-md font-sans text-xs font-bold uppercase tracking-widest cursor-pointer"
+              className="w-full mt-2 bg-primary hover:bg-primary/95 text-on-primary py-3 rounded-xl active:scale-95 transition-all shadow-md font-sans text-xs font-bold uppercase tracking-widest cursor-pointer"
             >
-              {isSubmitting ? "Saving Plan..." : "Save Plan"}
+              {isSubmitting ? "Creating Plan..." : "Create Trip Plan"}
             </Button>
           </form>
         </div>
       )}
+
+      {/* EDIT TRIP DETAILS MODAL */}
+      {showEditModal && activePlan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity duration-300 animate-in fade-in" 
+            onClick={() => setShowEditModal(false)} 
+          />
+
+          <form 
+            onSubmit={handleEditPlan} 
+            className="relative z-10 w-full max-w-lg bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-outline-variant/35">
+              <h3 className="font-quicksand text-lg font-bold text-primary flex items-center gap-2">
+                <Edit className="h-5 w-5 shrink-0" /> Edit Trip Details
+              </h3>
+              <button 
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant/60 hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="editDestination" className="text-[10px] font-bold uppercase tracking-wider text-primary">Destination</Label>
+              <Input
+                id="editDestination"
+                type="text"
+                placeholder="e.g. Goa, Paris, Santorini, Manali"
+                value={editDestination}
+                onChange={(e) => setEditDestination(e.target.value)}
+                className="bg-surface-container-low border-outline-variant focus:border-primary/50 text-xs rounded-xl focus:ring-primary/20"
+                required
+              />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1">
+                <Label htmlFor="editStartDate" className="text-[10px] font-bold uppercase tracking-wider text-primary">Start Date</Label>
+                <Input
+                  id="editStartDate"
+                  type="date"
+                  value={editStartDate}
+                  onChange={(e) => setEditStartDate(e.target.value)}
+                  className="bg-surface-container-low border-outline-variant focus:border-primary/50 text-xs rounded-xl focus:ring-primary/20 cursor-pointer"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="editEndDate" className="text-[10px] font-bold uppercase tracking-wider text-primary">End Date</Label>
+                <Input
+                  id="editEndDate"
+                  type="date"
+                  value={editEndDate}
+                  onChange={(e) => setEditEndDate(e.target.value)}
+                  className="bg-surface-container-low border-outline-variant focus:border-primary/50 text-xs rounded-xl focus:ring-primary/20 cursor-pointer"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="editBudget" className="text-[10px] font-bold uppercase tracking-wider text-primary">Budget Estimate (INR)</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-2 text-xs text-on-surface-variant font-bold">₹</span>
+                <Input
+                  id="editBudget"
+                  type="number"
+                  placeholder="0.00"
+                  value={editBudgetEstimate}
+                  onChange={(e) => setEditBudgetEstimate(e.target.value)}
+                  className="pl-7 bg-surface-container-low border-outline-variant focus:border-primary/50 text-xs font-bold rounded-xl focus:ring-primary/20"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="editNotes" className="text-[10px] font-bold uppercase tracking-wider text-primary">Itinerary / Notes (Optional)</Label>
+              <Input
+                id="editNotes"
+                type="text"
+                placeholder="Flight details, hotel reservation codes, dinner timings..."
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                className="bg-surface-container-low border-outline-variant focus:border-primary/50 text-xs rounded-xl focus:ring-primary/20"
+              />
+            </div>
+
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full mt-2 bg-primary hover:bg-primary/95 text-on-primary py-3 rounded-xl active:scale-95 transition-all shadow-md font-sans text-xs font-bold uppercase tracking-widest cursor-pointer"
+            >
+              {isSubmitting ? "Saving Changes..." : "Save Changes"}
+            </Button>
+          </form>
+        </div>
+      )}
+
     </div>
   );
 }

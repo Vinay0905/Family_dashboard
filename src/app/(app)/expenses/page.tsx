@@ -1,11 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   ShoppingCart,
   Lightbulb,
@@ -19,9 +16,7 @@ import {
   ChevronRight,
   Plus,
   Trash2,
-  Users,
   Wallet,
-  AlertCircle,
   TrendingUp,
   X,
   Edit2,
@@ -43,16 +38,64 @@ import {
 
 const CATEGORY_MAP: Record<
   string,
-  { label: string; color: string; bg: string; icon: any; fill: string }
+  { label: string; color: string; badgeClass: string; icon: any; fill: string }
 > = {
-  grocery: { label: "Grocery", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500", icon: ShoppingCart, fill: "#10b981" },
-  utilities: { label: "Utilities", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-500", icon: Lightbulb, fill: "#f59e0b" },
-  education: { label: "Education", color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-500", icon: GraduationCap, fill: "#6366f1" },
-  fuel: { label: "Fuel", color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-500", icon: Car, fill: "#f97316" },
-  entertainment: { label: "Entertainment", color: "text-pink-600 dark:text-pink-400", bg: "bg-pink-500", icon: Tv, fill: "#ec4899" },
-  medical: { label: "Medical", color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-500", icon: HeartPulse, fill: "#f43f5e" },
-  travel: { label: "Travel", color: "text-sky-600 dark:text-sky-400", bg: "bg-sky-500", icon: Plane, fill: "#0ea5e9" },
-  miscellaneous: { label: "Miscellaneous", color: "text-slate-655 dark:text-slate-400", bg: "bg-slate-500", icon: DollarSign, fill: "#64748b" },
+  grocery: {
+    label: "Grocery",
+    color: "text-tertiary",
+    badgeClass: "bg-tertiary-fixed text-on-tertiary-fixed border-tertiary-fixed-dim/30",
+    icon: ShoppingCart,
+    fill: "#2a6747"
+  },
+  utilities: {
+    label: "Utilities",
+    color: "text-secondary",
+    badgeClass: "bg-secondary-fixed text-on-secondary-fixed border-secondary-fixed-dim/30",
+    icon: Lightbulb,
+    fill: "#a53b29"
+  },
+  education: {
+    label: "Education",
+    color: "text-indigo-700",
+    badgeClass: "bg-indigo-100 text-indigo-800 border-indigo-200/50",
+    icon: GraduationCap,
+    fill: "#6366f1"
+  },
+  fuel: {
+    label: "Fuel",
+    color: "text-amber-700",
+    badgeClass: "bg-amber-100 text-amber-800 border-amber-200/50",
+    icon: Car,
+    fill: "#f97316"
+  },
+  entertainment: {
+    label: "Entertainment",
+    color: "text-pink-700",
+    badgeClass: "bg-pink-100 text-pink-800 border-pink-200/50",
+    icon: Tv,
+    fill: "#ec4899"
+  },
+  medical: {
+    label: "Medical",
+    color: "text-error",
+    badgeClass: "bg-error-container text-on-error-container border-error/10",
+    icon: HeartPulse,
+    fill: "#ba1a1a"
+  },
+  travel: {
+    label: "Travel",
+    color: "text-primary",
+    badgeClass: "bg-primary-fixed text-on-primary-fixed border-primary-fixed-dim/30",
+    icon: Plane,
+    fill: "#005da7"
+  },
+  miscellaneous: {
+    label: "Miscellaneous",
+    color: "text-on-surface-variant",
+    badgeClass: "bg-surface-container text-on-surface-variant border-outline-variant/30",
+    icon: DollarSign,
+    fill: "#717783"
+  },
 };
 
 const MONTH_NAMES = [
@@ -61,6 +104,18 @@ const MONTH_NAMES = [
 ];
 
 export default function ExpensesPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    }>
+      <ExpensesPageContent />
+    </Suspense>
+  );
+}
+
+function ExpensesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
@@ -88,7 +143,7 @@ export default function ExpensesPage() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [paidByFilter, setPaidByFilter] = useState("all");
   const [sortField, setSortField] = useState<"expense_date" | "amount">("expense_date");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc"); // Default earliest first
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   // Modal Form state
   const [showLogModal, setShowLogModal] = useState(false);
@@ -290,7 +345,7 @@ export default function ExpensesPage() {
     .map(([cat, val]) => ({
       name: CATEGORY_MAP[cat]?.label || cat,
       value: val,
-      fill: CATEGORY_MAP[cat]?.fill || "#64748b",
+      fill: CATEGORY_MAP[cat]?.fill || "#717783",
     }))
     .filter((d) => d.value > 0);
 
@@ -367,7 +422,7 @@ export default function ExpensesPage() {
       return matchSearch && matchCat && matchPaid;
     })
     .sort((a, b) => {
-      let multiplier = sortDirection === "asc" ? 1 : -1;
+      const multiplier = sortDirection === "asc" ? 1 : -1;
       if (sortField === "amount") {
         return (Number(a.amount) - Number(b.amount)) * multiplier;
       } else {
@@ -396,168 +451,207 @@ export default function ExpensesPage() {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header & Navigation */}
-      <section className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-6 max-w-7xl mx-auto pb-16">
+      {/* ─── HEADER & MONTH SELECTOR ───────────────────────── */}
+      <section className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-outline-variant/20 pb-4 select-none">
         <div>
-          <h1 className="font-heading text-4xl text-on-surface tracking-tight font-extrabold">
-            Family <span className="text-primary italic">Expenses</span>
+          <h1 className="font-quicksand text-3xl font-bold tracking-tight text-on-background md:text-4xl">
+            Expenses <span className="text-primary italic">Tracker</span>
           </h1>
-          <p className="font-sans text-sm text-on-surface-variant mt-2 font-medium">
+          <p className="text-sm text-on-surface-variant/80 font-sans mt-1">
             Log shared household purchases and split the balances fairly.
           </p>
         </div>
 
-        {/* Month Navigator */}
-        <div className="flex items-center gap-2 rounded bg-surface-container border border-primary/10 p-1 shadow-sm h-fit">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          {/* Month Navigator */}
+          <div className="flex items-center gap-1.5 rounded-2xl bg-surface-container-low border border-outline-variant/30 p-1 shadow-sm h-11 shrink-0">
+            <button
+              onClick={() => navigateMonth(-1)}
+              className="p-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-primary active:scale-90 transition-all cursor-pointer"
+              title="Previous Month"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="text-xs font-bold uppercase tracking-widest px-4 min-w-[130px] text-center select-none text-on-surface font-sans">
+              {MONTH_NAMES[currentMonth - 1]} {currentYear}
+            </span>
+            <button
+              onClick={() => navigateMonth(1)}
+              className="p-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-primary active:scale-90 transition-all cursor-pointer"
+              title="Next Month"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Add Expense Desktop Button */}
           <button
-            onClick={() => navigateMonth(-1)}
-            className="p-1.5 hover:text-primary transition-colors text-on-surface-variant cursor-pointer"
-            title="Previous Month"
+            onClick={() => setShowLogModal(true)}
+            className="hidden md:flex bg-secondary text-on-secondary px-6 h-11 rounded-2xl items-center justify-center gap-2 font-bold shadow-md hover:shadow-lg hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer shrink-0"
           >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <span className="text-xs font-bold uppercase tracking-widest px-3 min-w-[130px] text-center select-none text-on-surface">
-            {MONTH_NAMES[currentMonth - 1]} {currentYear}
-          </span>
-          <button
-            onClick={() => navigateMonth(1)}
-            className="p-1.5 hover:text-primary transition-colors text-on-surface-variant cursor-pointer"
-            title="Next Month"
-          >
-            <ChevronRight className="h-4 w-4" />
+            <Plus className="h-4 w-4" /> Log New Expense
           </button>
         </div>
       </section>
 
-      {/* Budget Summary & Progress bar */}
-      <div className="glass-card rounded p-6 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-primary/10 rounded flex items-center justify-center text-primary">
-              <Wallet className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="font-heading font-extrabold text-lg text-on-surface">Monthly Budget Plan</h3>
-              <p className="text-xs text-on-surface-variant font-medium">Assigned budget for family expenses</p>
-            </div>
+      {/* ─── BUDGET PLANS AND SUMMARY STATS ───────────────── */}
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Card: Month to Date Total */}
+        <div className="lg:col-span-2 bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col justify-between h-44 relative overflow-hidden group">
+          <div className="absolute -right-8 -bottom-8 w-40 h-40 bg-primary/5 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-700"></div>
+          <div className="absolute right-12 top-4 w-12 h-12 bg-primary/5 rounded-full border border-primary/10"></div>
+          
+          <div className="relative z-10">
+            <p className="text-xs font-bold text-on-surface-variant/75 uppercase tracking-wider">Month-to-Date Spending</p>
+            <h3 className="font-quicksand text-4xl md:text-5xl font-bold text-primary mt-2">
+              ₹{totalSpend.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+            </h3>
           </div>
-
-          <div className="flex items-center gap-4">
-            {/* Show Budget with Edit Trigger for Admin */}
-            {isEditingBudget ? (
-              <div className="flex items-center gap-1.5">
-                <Input
-                  value={tempBudget}
-                  onChange={(e) => setTempBudget(e.target.value)}
-                  className="w-28 bg-surface-container-lowest text-sm h-8 rounded border-outline-variant font-bold focus:border-primary"
-                  type="number"
-                  placeholder="Budget"
-                />
-                <button
-                  onClick={handleUpdateBudget}
-                  className="h-8 w-8 rounded bg-emerald-500 text-white flex items-center justify-center hover:bg-emerald-600 transition-colors"
-                >
-                  <Check className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => setIsEditingBudget(false)}
-                  className="h-8 w-8 rounded bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-colors"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <span className="font-heading text-2xl font-black text-on-surface">
-                  ₹{monthlyBudget.toLocaleString("en-IN")}
-                </span>
-                {memberRole === "admin" && (
-                  <button
-                    onClick={() => setIsEditingBudget(true)}
-                    className="p-1 text-on-surface-variant hover:text-primary transition-colors cursor-pointer"
-                    title="Change Budget"
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Budget bar */}
-        <div className="space-y-1">
-          <div className="flex justify-between items-center text-xs font-bold text-on-surface-variant">
-            <span>Utilization: ₹{totalSpend.toLocaleString("en-IN")} Spent</span>
-            <span className={remainingBudget < 0 ? "text-primary" : "text-secondary"}>
-              {remainingBudget < 0 
-                ? `Overspent by ₹${Math.abs(remainingBudget).toLocaleString("en-IN")}`
-                : `₹${remainingBudget.toLocaleString("en-IN")} Remaining`
-              }
+          <div className="relative z-10 flex items-center gap-2 text-tertiary">
+            <TrendingUp className="h-4 w-4" />
+            <span className="text-xs font-bold uppercase tracking-wider">
+              {familyMembers.length > 0
+                ? `Split share: ~₹${averageShare.toLocaleString("en-IN", { maximumFractionDigits: 0 })} per person`
+                : "No family members listed"}
             </span>
           </div>
-          <div className="h-3 w-full rounded bg-surface-container overflow-hidden border border-outline-variant/30">
-            <div
-              className={`h-full rounded transition-all duration-300 ${
-                budgetUtilization > 100 ? "bg-primary" : "bg-secondary"
-              }`}
-              style={{ width: `${Math.min(budgetUtilization, 100)}%` }}
-            />
+        </div>
+
+        {/* Card: Budget Planning */}
+        <div className="lg:col-span-1 bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col justify-between h-44">
+          <div className="flex justify-between items-start w-full">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <Wallet className="h-4.5 w-4.5" />
+              </div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant/80">Budget Plan</h4>
+            </div>
+
+            <div>
+              {isEditingBudget ? (
+                <div className="flex items-center gap-1.5">
+                  <input
+                    value={tempBudget}
+                    onChange={(e) => setTempBudget(e.target.value)}
+                    className="w-24 px-2 py-1 bg-surface-container-low text-xs border border-outline-variant/40 rounded-lg font-bold focus:outline-none focus:border-primary text-right"
+                    type="number"
+                    placeholder="0"
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleUpdateBudget}
+                    className="p-1 rounded bg-tertiary text-on-tertiary hover:opacity-90 active:scale-95 transition-all cursor-pointer"
+                    title="Save Budget"
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => setIsEditingBudget(false)}
+                    className="p-1 rounded bg-surface-container-high text-on-surface-variant hover:opacity-90 active:scale-95 transition-all cursor-pointer"
+                    title="Cancel"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <span className="font-quicksand text-lg font-bold text-on-surface">
+                    ₹{monthlyBudget.toLocaleString("en-IN")}
+                  </span>
+                  {memberRole === "admin" && (
+                    <button
+                      onClick={() => {
+                        setTempBudget(String(monthlyBudget));
+                        setIsEditingBudget(true);
+                      }}
+                      className="p-1 text-on-surface-variant/50 hover:text-primary active:scale-95 transition-colors cursor-pointer"
+                      title="Edit Budget Plan"
+                    >
+                      <Edit2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="w-full mt-auto">
+            <div className="flex justify-between items-center text-[10px] font-bold text-on-surface-variant/80 mb-1.5">
+              <span>{budgetUtilization.toFixed(0)}% Used</span>
+              <span className={remainingBudget < 0 ? "text-error font-extrabold" : "text-tertiary font-bold"}>
+                {remainingBudget < 0
+                  ? `Overspent ₹${Math.abs(remainingBudget).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`
+                  : `₹${remainingBudget.toLocaleString("en-IN", { maximumFractionDigits: 0 })} Left`
+                }
+              </span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-surface-container overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  budgetUtilization > 100 ? "bg-error" : budgetUtilization > 85 ? "bg-secondary" : "bg-primary"
+                }`}
+                style={{ width: `${Math.min(budgetUtilization, 100)}%` }}
+              />
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Visual Charts section */}
+      {/* ─── INTERACTIVE DATA VISUALIZATION ───────────────── */}
       {mounted && totalSpend > 0 && (
-        <section className="grid gap-6 md:grid-cols-2">
-          {/* Pie Chart: Spend categories */}
-          <div className="glass-card rounded p-6 shadow-sm flex flex-col justify-between h-[300px]">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-primary mb-2 flex items-center gap-1.5">
-              <TrendingUp className="h-4 w-4" /> Expense categories
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Card: Pie Chart Breakdown */}
+          <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col justify-between h-[320px]">
+            <h4 className="font-quicksand font-bold text-sm text-primary flex items-center gap-1.5 uppercase tracking-wider">
+              <TrendingUp className="h-4 w-4 text-primary" /> Category Distribution
             </h4>
-            <div className="flex-1 min-h-0 relative">
-              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-                <PieChart>
-                  <Pie
-                    data={chartData}
-                    cx="50%"
-                    cy="55%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => `₹${Number(value).toLocaleString("en-IN")}`} />
-                </PieChart>
-              </ResponsiveContainer>
-              
+            <div className="flex-grow min-h-0 relative flex items-center justify-between gap-4 mt-2">
+              <div className="flex-grow h-full relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={chartData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={75}
+                      paddingAngle={4}
+                      dataKey="value"
+                    >
+                      {chartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => `₹${Number(value).toLocaleString("en-IN")}`} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
               {/* Legend overlay inside card */}
-              <div className="absolute right-2 top-0 bottom-0 flex flex-col justify-center gap-1.5 max-h-full overflow-y-auto text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-wide">
+              <div className="flex flex-col justify-center gap-2.5 max-h-full overflow-y-auto w-32 shrink-0 select-none border-l border-outline-variant/15 pl-4">
                 {chartData.map((d, i) => (
-                  <div key={i} className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: d.fill }} />
-                    <span className="truncate max-w-[120px]">{d.name}</span>
+                  <div key={i} className="flex items-center gap-2 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider leading-none">
+                    <span className="w-2.5 h-2.5 rounded shrink-0" style={{ backgroundColor: d.fill }} />
+                    <span className="truncate" title={`${d.name}: ₹${d.value.toLocaleString("en-IN")}`}>{d.name}</span>
                   </div>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* Bar Chart: Daily spend trend */}
-          <div className="glass-card rounded p-6 shadow-sm h-[300px]">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-primary mb-4">Daily Spend Trend</h4>
-            <div className="w-full h-full pb-8">
-              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+          {/* Card: Bar Chart Trend */}
+          <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col justify-between h-[320px]">
+            <h4 className="font-quicksand font-bold text-sm text-primary uppercase tracking-wider">
+              Daily Spending Trend
+            </h4>
+            <div className="w-full h-full pb-4 pt-4">
+              <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={dailySpendArray}>
-                  <XAxis dataKey="day" tick={{ fontSize: 9 }} stroke="#8f6f74" />
-                  <YAxis tick={{ fontSize: 9 }} stroke="#8f6f74" />
+                  <XAxis dataKey="day" tick={{ fontSize: 9, fill: "#717783", fontWeight: "600" }} stroke="#c1c7d3" />
+                  <YAxis tick={{ fontSize: 9, fill: "#717783", fontWeight: "600" }} stroke="#c1c7d3" tickFormatter={(value: number | string) => `₹${value}`} />
                   <Tooltip formatter={(value) => `₹${Number(value).toLocaleString("en-IN")}`} />
-                  <Bar dataKey="spend" fill="#b7004f" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="spend" fill="#005da7" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -565,27 +659,40 @@ export default function ExpensesPage() {
         </section>
       )}
 
-      {/* Split balances & settlements layout */}
-      <section className="grid gap-6 md:grid-cols-3">
-        <div className="glass-card rounded p-5 shadow-sm md:col-span-2 space-y-4">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-primary border-b border-primary/10 pb-2">Family Ledger split balance</h4>
-          <div className="grid gap-3 sm:grid-cols-2">
+      {/* ─── BALANCES SPLIT AND SETTLEMENT WIDGETS ───────── */}
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Ledger Balance Split */}
+        <div className="lg:col-span-2 bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-4">
+          <h4 className="font-quicksand font-bold text-sm text-primary uppercase tracking-wider">
+            Ledger Balance Split
+          </h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {familyMembers.map((m) => {
               const spent = memberSpends[m.user_id] || 0;
               const balance = spent - averageShare;
               const isOwed = balance > 0;
-              
+              const avatarLetter = (m.display_name || "?")[0].toUpperCase();
+
               return (
-                <div key={m.user_id} className="flex justify-between items-center rounded border border-outline-variant/60 bg-surface-container-low/20 p-3">
-                  <div>
-                    <span className="text-sm font-bold text-on-surface">{m.display_name}</span>
-                    <span className="block text-[10px] text-on-surface-variant font-medium mt-0.5">Spent ₹{spent.toFixed(0)}</span>
+                <div key={m.user_id} className="flex justify-between items-center rounded-2xl border border-outline-variant/30 bg-surface-container-low/40 p-4 hover:shadow-sm transition-all">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-primary-container/20 text-primary font-bold flex items-center justify-center text-xs">
+                      {avatarLetter}
+                    </div>
+                    <div>
+                      <span className="text-sm font-bold text-on-surface">{m.display_name}</span>
+                      <span className="block text-[10px] text-on-surface-variant font-medium mt-0.5">
+                        Paid: ₹{spent.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                      </span>
+                    </div>
                   </div>
                   {Math.abs(balance) < 0.01 ? (
-                    <span className="text-xs font-bold text-on-surface-variant/60">Settled</span>
+                    <span className="text-xs font-bold text-on-surface-variant/60 bg-surface-container-high px-2.5 py-1 rounded-full select-none">
+                      Settled
+                    </span>
                   ) : (
-                    <span className={`text-sm font-extrabold ${isOwed ? "text-secondary" : "text-primary"}`}>
-                      {isOwed ? "+" : "-"}₹{Math.abs(balance).toFixed(0)}
+                    <span className={`text-xs font-extrabold px-2.5 py-1 rounded-full ${isOwed ? "bg-tertiary/10 text-tertiary" : "bg-error/10 text-error"}`}>
+                      {isOwed ? "+" : "-"}₹{Math.abs(balance).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                     </span>
                   )}
                 </div>
@@ -594,20 +701,26 @@ export default function ExpensesPage() {
           </div>
         </div>
 
-        <div className="glass-card rounded p-5 shadow-sm space-y-4">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-primary border-b border-primary/10 pb-2">Recommended Settlement path</h4>
+        {/* Recommended Settlements */}
+        <div className="lg:col-span-1 bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-4">
+          <h4 className="font-quicksand font-bold text-sm text-primary uppercase tracking-wider">
+            Settlement Pathways
+          </h4>
           {settlements.length === 0 ? (
-            <p className="text-xs text-on-surface-variant/50 text-center py-6 italic font-medium">All balances are completely settled!</p>
+            <div className="flex flex-col items-center justify-center py-8 text-center h-4/5">
+              <Check className="h-8 w-8 text-tertiary mb-2 bg-tertiary/10 p-1.5 rounded-full" />
+              <p className="text-xs text-on-surface-variant/70 italic font-medium">All balances are completely settled!</p>
+            </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-[175px] overflow-y-auto pr-1 custom-scrollbar">
               {settlements.map((s, idx) => (
-                <div key={idx} className="flex items-center justify-between text-xs rounded bg-surface-container border border-primary/5 p-2.5">
-                  <div className="font-bold text-on-surface">
-                    <span>{s.from}</span>
-                    <span className="text-on-surface-variant/60 font-normal px-1">pays</span>
-                    <span>{s.to}</span>
+                <div key={idx} className="flex items-center justify-between text-xs rounded-xl bg-surface-container-low border border-outline-variant/20 p-3 hover:shadow-xs transition-all">
+                  <div className="font-bold text-on-surface flex flex-wrap items-center gap-1">
+                    <span className="text-on-surface font-semibold">{s.from}</span>
+                    <span className="text-on-surface-variant/50 font-normal text-[9px] uppercase tracking-wider px-0.5">pays</span>
+                    <span className="text-on-surface font-semibold">{s.to}</span>
                   </div>
-                  <span className="font-extrabold text-primary">₹{s.amount.toFixed(0)}</span>
+                  <span className="font-extrabold text-secondary">₹{s.amount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</span>
                 </div>
               ))}
             </div>
@@ -615,183 +728,285 @@ export default function ExpensesPage() {
         </div>
       </section>
 
-      {/* Filter and Search controls */}
-      <section className="glass-card rounded p-4 shadow-sm flex flex-col sm:flex-row gap-3 items-center justify-between">
-        <div className="relative w-full sm:max-w-xs">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-on-surface-variant/60" />
-          <Input
-            placeholder="Search description..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-surface-container-lowest border-outline-variant text-xs h-9 rounded"
-          />
+      {/* ─── FILTERS & TRANSACTION TABLE ─────────────────── */}
+      <section className="space-y-4">
+        {/* Filters Panel */}
+        <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col md:flex-row gap-4 items-center justify-between select-none">
+          <div className="relative w-full md:max-w-xs">
+            <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-on-surface-variant/50" />
+            <input
+              placeholder="Search descriptions..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 bg-surface-container-low border border-outline-variant/30 rounded-xl text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+            />
+          </div>
+
+          <div className="flex gap-2 w-full md:w-auto">
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="rounded-xl border border-outline-variant/30 bg-surface-container-low px-3 py-2 text-xs text-on-surface font-bold outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all flex-1 md:flex-none cursor-pointer"
+            >
+              <option value="all">All Categories</option>
+              {Object.entries(CATEGORY_MAP).map(([val, conf]) => (
+                <option key={val} value={val}>{conf.label}</option>
+              ))}
+            </select>
+
+            <select
+              value={paidByFilter}
+              onChange={(e) => setPaidByFilter(e.target.value)}
+              className="rounded-xl border border-outline-variant/30 bg-surface-container-low px-3 py-2 text-xs text-on-surface font-bold outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all flex-1 md:flex-none cursor-pointer"
+            >
+              <option value="all">All Payers</option>
+              {familyMembers.map((m) => (
+                <option key={m.user_id} value={m.user_id}>{m.display_name}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        <div className="flex gap-2 w-full sm:w-auto">
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="rounded border border-outline-variant bg-surface-container-lowest px-3 py-1.5 text-xs text-on-surface font-semibold outline-none focus:border-primary transition-all flex-1 sm:flex-none h-9"
-          >
-            <option value="all">All Categories</option>
-            {Object.entries(CATEGORY_MAP).map(([val, conf]) => (
-              <option key={val} value={val}>{conf.label}</option>
-            ))}
-          </select>
+        {/* Expenses List & Table */}
+        <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden">
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-surface-container-low/60 border-b border-outline-variant/30 font-bold uppercase text-primary tracking-wider text-[10px] select-none">
+                  <th
+                    onClick={() => toggleSort("expense_date")}
+                    className="p-4 pl-6 cursor-pointer hover:bg-primary/5 transition-colors select-none w-44"
+                  >
+                    <span className="flex items-center gap-1">
+                      Date <ArrowUpDown className="h-3 w-3 text-primary/60" />
+                    </span>
+                  </th>
+                  <th className="p-4">Description</th>
+                  <th className="p-4 w-36">Category</th>
+                  <th className="p-4 w-36">Paid By</th>
+                  <th
+                    onClick={() => toggleSort("amount")}
+                    className="p-4 cursor-pointer hover:bg-primary/5 transition-colors select-none text-right w-40"
+                  >
+                    <span className="flex items-center justify-end gap-1">
+                      Amount <ArrowUpDown className="h-3 w-3 text-primary/60" />
+                    </span>
+                  </th>
+                  <th className="p-4 pr-6 text-center w-20">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-outline-variant/20">
+                {filteredExpenses.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="p-12 text-center text-on-surface-variant/40 font-semibold italic">
+                      No expense items match your criteria.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredExpenses.map((expense) => {
+                    const categoryConf = CATEGORY_MAP[expense.category] || CATEGORY_MAP.miscellaneous;
+                    const payer = familyMembers.find((m) => m.user_id === expense.paid_by);
+                    const avatarLetter = (payer?.display_name || "?")[0].toUpperCase();
 
-          <select
-            value={paidByFilter}
-            onChange={(e) => setPaidByFilter(e.target.value)}
-            className="rounded border border-outline-variant bg-surface-container-lowest px-3 py-1.5 text-xs text-on-surface font-semibold outline-none focus:border-primary transition-all flex-1 sm:flex-none h-9"
-          >
-            <option value="all">All Payers</option>
-            {familyMembers.map((m) => (
-              <option key={m.user_id} value={m.user_id}>{m.display_name}</option>
-            ))}
-          </select>
+                    return (
+                      <tr
+                        key={expense.id}
+                        className="hover:bg-primary/[0.01] transition-colors"
+                      >
+                        <td className="p-4 pl-6 font-mono font-bold text-on-surface-variant">
+                          {new Date(expense.expense_date).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </td>
+                        <td className="p-4 font-sans font-medium text-on-surface">
+                          {expense.description || <span className="italic opacity-30 font-normal">None</span>}
+                        </td>
+                        <td className="p-4">
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider ${categoryConf.badgeClass}`}>
+                            {categoryConf.label}
+                          </span>
+                        </td>
+                        <td className="p-4 font-sans font-semibold text-on-surface">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-secondary-fixed text-[10px] flex items-center justify-center font-bold text-on-secondary-fixed border border-secondary-fixed-dim/20">
+                              {avatarLetter}
+                            </div>
+                            <span>{payer?.display_name || "Unknown"}</span>
+                          </div>
+                        </td>
+                        <td className="p-4 text-right font-mono font-bold text-on-surface text-sm">
+                          ₹{Number(expense.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td className="p-4 pr-6 text-center">
+                          <button
+                            onClick={() => handleDeleteExpense(expense.id)}
+                            className="p-1.5 text-on-surface-variant/40 hover:text-error hover:bg-error-container/20 rounded-xl transition-all cursor-pointer"
+                            title="Delete Transaction"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Cards List View */}
+          <div className="md:hidden divide-y divide-outline-variant/20">
+            {filteredExpenses.length === 0 ? (
+              <div className="p-12 text-center text-on-surface-variant/40 font-semibold italic">
+                No expense items match your criteria.
+              </div>
+            ) : (
+              filteredExpenses.map((expense) => {
+                const categoryConf = CATEGORY_MAP[expense.category] || CATEGORY_MAP.miscellaneous;
+                const payer = familyMembers.find((m) => m.user_id === expense.paid_by);
+                const avatarLetter = (payer?.display_name || "?")[0].toUpperCase();
+
+                return (
+                  <div key={expense.id} className="p-4 flex flex-col gap-3 hover:bg-primary/[0.01] transition-colors">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h5 className="font-semibold text-on-surface text-sm">
+                          {expense.description || <span className="italic opacity-30 font-normal">None</span>}
+                        </h5>
+                        <span className="text-[10px] text-on-surface-variant font-mono block mt-1">
+                          {new Date(expense.expense_date).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-mono font-bold text-on-surface text-sm block">
+                          ₹{Number(expense.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[9px] font-bold uppercase tracking-wider ${categoryConf.badgeClass}`}>
+                          {categoryConf.label}
+                        </span>
+                        <div className="flex items-center gap-1 text-[11px] text-on-surface-variant font-medium">
+                          <div className="w-5 h-5 rounded-full bg-secondary-fixed text-[9px] flex items-center justify-center font-bold text-on-secondary-fixed border border-secondary-fixed-dim/20">
+                            {avatarLetter}
+                          </div>
+                          <span>{payer?.display_name || "Unknown"}</span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleDeleteExpense(expense.id)}
+                        className="p-1.5 text-on-surface-variant/40 hover:text-error hover:bg-error-container/20 rounded-xl transition-all cursor-pointer"
+                        title="Delete Transaction"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       </section>
 
-      {/* Tabular Expense Log */}
-      <div className="glass-card rounded shadow-sm overflow-hidden border border-primary/10">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="bg-surface-container-low border-b border-primary/10 font-bold uppercase text-primary tracking-wider">
-                <th 
-                  onClick={() => toggleSort("expense_date")}
-                  className="p-3.5 pl-4 cursor-pointer hover:bg-primary/5 transition-colors select-none items-center gap-1 inline-flex w-full"
-                >
-                  Date <ArrowUpDown className="h-3 w-3 text-primary/60" />
-                </th>
-                <th className="p-3.5">Description</th>
-                <th className="p-3.5">Category</th>
-                <th className="p-3.5">Paid By</th>
-                <th 
-                  onClick={() => toggleSort("amount")}
-                  className="p-3.5 cursor-pointer hover:bg-primary/5 transition-colors select-none text-right"
-                >
-                  <span className="items-center gap-1 inline-flex">
-                    Amount <ArrowUpDown className="h-3 w-3 text-primary/60" />
-                  </span>
-                </th>
-                <th className="p-3.5 pr-4 text-center">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-container">
-              {filteredExpenses.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="p-10 text-center text-on-surface-variant/40 font-semibold italic bg-surface-container-lowest">
-                    No expense items match your sorting/filtering query.
-                  </td>
-                </tr>
-              ) : (
-                filteredExpenses.map((expense) => {
-                  const categoryConf = CATEGORY_MAP[expense.category] || CATEGORY_MAP.miscellaneous;
-                  const payer = familyMembers.find((m) => m.user_id === expense.paid_by);
-                  
-                  return (
-                    <tr 
-                      key={expense.id} 
-                      className="bg-surface-container-lowest hover:bg-primary/[0.02] transition-colors"
-                    >
-                      <td className="p-3.5 pl-4 font-mono font-bold text-on-surface">
-                        {new Date(expense.expense_date).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </td>
-                      <td className="p-3.5 font-sans font-medium text-on-surface-variant">
-                        {expense.description || <span className="italic opacity-40 font-normal">None</span>}
-                      </td>
-                      <td className="p-3.5">
-                        <span className={`inline-flex px-2 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider ${categoryConf.color} bg-primary/5 border-primary/10`}>
-                          {categoryConf.label}
-                        </span>
-                      </td>
-                      <td className="p-3.5 font-sans font-bold text-on-surface">
-                        {payer?.display_name || "Unknown"}
-                      </td>
-                      <td className="p-3.5 text-right font-mono font-bold text-on-surface">
-                        ₹{Number(expense.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="p-3.5 pr-4 text-center">
-                        <button
-                          onClick={() => handleDeleteExpense(expense.id)}
-                          className="p-1 text-on-surface-variant/40 hover:text-primary transition-all rounded hover:bg-primary/10 cursor-pointer"
-                          title="Delete Expense Log"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* ─── MOBILE FLOATING ACTION BUTTON ────────────────── */}
+      <button
+        onClick={() => {
+          setExpenseDate(new Date().toISOString().slice(0, 10));
+          setShowLogModal(true);
+        }}
+        className="md:hidden fixed right-6 bottom-20 w-14 h-14 bg-secondary text-on-secondary rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all z-30"
+        title="Log New Expense"
+      >
+        <Plus className="h-6 w-6" />
+      </button>
 
-      {/* Button at the bottom to open Log Modal */}
-      <div className="flex justify-center pt-2">
-        <Button
-          onClick={() => setShowLogModal(true)}
-          className="bg-primary hover:bg-primary-container text-white px-8 h-12 gap-2 text-sm font-bold shadow-lg shadow-primary/20 rounded cursor-pointer animate-neon-text active:scale-95 transition-all"
-        >
-          <Plus className="h-5 w-5" /> Log New Expense
-        </Button>
-      </div>
-
-      {/* Semi-Translucent Dialog Form (Modal) */}
+      {/* ─── ADD EXPENSE MODAL ─────────────────────────────── */}
       {showLogModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 select-none">
           {/* Backdrop overlay */}
-          <div 
-            className="fixed inset-0 bg-black/30 backdrop-blur-xs" 
-            onClick={() => setShowLogModal(false)} 
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity duration-300"
+            onClick={() => setShowLogModal(false)}
           />
 
           {/* Modal Container */}
-          <form 
-            onSubmit={handleLogExpense} 
-            className="relative z-10 w-full max-w-lg glass-card rounded p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150"
+          <form
+            onSubmit={handleLogExpense}
+            className="relative z-10 w-full max-w-md bg-surface border border-outline-variant/30 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
           >
-            <div className="flex items-center justify-between pb-3 border-b border-primary/10">
-              <h3 className="font-heading text-lg font-bold text-primary flex items-center gap-2">
-                <Wallet className="h-5 w-5" /> Log New Expense
+            {/* Modal Header */}
+            <div className="p-5 bg-primary text-on-primary flex justify-between items-center select-none">
+              <h3 className="font-quicksand text-lg font-bold flex items-center gap-2">
+                <Wallet className="h-5 w-5" /> Log Expense
               </h3>
-              <button 
+              <button
                 type="button"
                 onClick={() => setShowLogModal(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant/60 hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-on-primary/80 hover:bg-white/10 hover:text-on-primary transition-colors cursor-pointer"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            {/* Form Fields */}
+            <div className="p-5 space-y-4">
+              {/* Description */}
               <div className="space-y-1">
-                <Label htmlFor="logAmount" className="text-[10px] font-bold uppercase tracking-wider text-primary">Amount (INR)</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-xs text-on-surface-variant font-bold">₹</span>
-                  <Input
-                    id="logAmount"
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="pl-7 bg-surface-container-lowest border-outline-variant rounded focus:border-primary text-xs font-bold"
+                <label htmlFor="logDesc" className="text-xs font-semibold text-on-surface-variant">Description</label>
+                <input
+                  id="logDesc"
+                  type="text"
+                  placeholder="e.g. Weekly Grocery Run"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full px-3 py-2 bg-surface-container-low border border-outline-variant/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm outline-none text-on-surface transition-colors"
+                />
+              </div>
+
+              {/* Amount & Date */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label htmlFor="logAmount" className="text-xs font-semibold text-on-surface-variant">Amount (₹)</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2 text-xs text-on-surface-variant/65 font-bold">₹</span>
+                    <input
+                      id="logAmount"
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      className="w-full pl-7 pr-3 py-2 bg-surface-container-low border border-outline-variant/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm outline-none font-bold text-on-surface transition-colors"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label htmlFor="logDate" className="text-xs font-semibold text-on-surface-variant">Date</label>
+                  <input
+                    id="logDate"
+                    type="date"
+                    value={expenseDate}
+                    onChange={(e) => setExpenseDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-surface-container-low border border-outline-variant/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm outline-none text-on-surface transition-colors font-semibold"
                     required
                   />
                 </div>
               </div>
 
+              {/* Category */}
               <div className="space-y-1">
-                <Label htmlFor="logCat" className="text-[10px] font-bold uppercase tracking-wider text-primary">Category</Label>
+                <label htmlFor="logCat" className="text-xs font-semibold text-on-surface-variant">Category</label>
                 <select
                   id="logCat"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 text-xs text-on-surface focus:border-primary focus:outline-none transition-colors font-semibold"
+                  className="w-full px-3 py-2.5 bg-surface-container-low border border-outline-variant/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm outline-none text-on-surface font-semibold transition-colors cursor-pointer"
                   required
                 >
                   <option value="">Select Category</option>
@@ -800,16 +1015,15 @@ export default function ExpensesPage() {
                   ))}
                 </select>
               </div>
-            </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+              {/* Paid By */}
               <div className="space-y-1">
-                <Label htmlFor="logPaidBy" className="text-[10px] font-bold uppercase tracking-wider text-primary">Who Paid?</Label>
+                <label htmlFor="logPaidBy" className="text-xs font-semibold text-on-surface-variant">Who Paid?</label>
                 <select
                   id="logPaidBy"
                   value={paidBy}
                   onChange={(e) => setPaidBy(e.target.value)}
-                  className="w-full rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 text-xs text-on-surface focus:border-primary focus:outline-none transition-colors font-semibold"
+                  className="w-full px-3 py-2.5 bg-surface-container-low border border-outline-variant/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm outline-none text-on-surface font-semibold transition-colors cursor-pointer"
                   required
                 >
                   <option value="">Select Payer</option>
@@ -819,47 +1033,16 @@ export default function ExpensesPage() {
                 </select>
               </div>
 
-              <div className="space-y-1">
-                <Label htmlFor="logDate" className="text-[10px] font-bold uppercase tracking-wider text-primary">Expense Date</Label>
-                <Input
-                  id="logDate"
-                  type="date"
-                  value={expenseDate}
-                  onChange={(e) => setExpenseDate(e.target.value)}
-                  className="bg-surface-container-lowest border-outline-variant rounded focus:border-primary text-xs font-semibold"
-                  required
-                />
+              {/* Action Buttons */}
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full bg-primary text-on-primary font-bold py-2.5 rounded-xl hover:shadow-lg active:scale-[0.98] transition-all disabled:opacity-55 cursor-pointer"
+                >
+                  {isSubmitting ? "Saving Transaction..." : "Save Transaction"}
+                </button>
               </div>
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="logDesc" className="text-[10px] font-bold uppercase tracking-wider text-primary">Description</Label>
-              <Input
-                id="logDesc"
-                type="text"
-                placeholder="e.g. Electric bill payment, milk and eggs"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="bg-surface-container-lowest border-outline-variant rounded focus:border-primary text-xs font-semibold"
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowLogModal(false)}
-                className="h-9 text-xs font-bold border-outline-variant"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="bg-primary hover:bg-primary-container text-white h-9 text-xs font-bold rounded cursor-pointer"
-              >
-                {isSubmitting ? "Saving..." : "Save Log"}
-              </Button>
             </div>
           </form>
         </div>

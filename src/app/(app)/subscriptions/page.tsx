@@ -1,29 +1,140 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Film,
+  Music,
+  Zap,
+  Cloud,
+  GraduationCap,
+  Shield,
   CreditCard,
-  Calendar,
+  Activity,
+  ShoppingBag,
+  Tv,
   Plus,
   Trash2,
   CheckCircle2,
   X,
   Search,
   ArrowUpDown,
-  Filter,
-  DollarSign
+  Calendar,
+  Sparkles,
+  Lightbulb,
+  ArrowRight,
+  TrendingDown,
+  Info
 } from "lucide-react";
 
 const PLAN_TYPES = ["Weekly", "Monthly", "Quarterly", "Yearly", "One-time"];
 const PAYMENT_METHODS = ["Credit Card", "Debit Card", "UPI/Auto-pay", "Cash", "Net Banking"];
 const CATEGORIES = ["Entertainment", "Utilities", "Cloud/Software", "Education", "Insurance", "Other"];
 
-export default function SubscriptionsPage() {
+interface DonutSegment {
+  category: string;
+  cost: number;
+  percent: number;
+  color: string;
+}
+
+const getCategoryStyles = (name: string, category: string) => {
+  const n = (name || "").toLowerCase();
+  const cat = (category || "").toLowerCase();
+
+  if (n.includes("netflix")) {
+    return {
+      bgColor: "bg-[#E50914]/10",
+      textColor: "text-[#E50914]",
+      icon: Film
+    };
+  }
+  if (n.includes("spotify")) {
+    return {
+      bgColor: "bg-[#1DB954]/10",
+      textColor: "text-[#1DB954]",
+      icon: Music
+    };
+  }
+  if (n.includes("amazon") || n.includes("prime")) {
+    return {
+      bgColor: "bg-[#FF9900]/10",
+      textColor: "text-[#FF9900]",
+      icon: ShoppingBag
+    };
+  }
+  if (n.includes("disney") || n.includes("hotstar")) {
+    return {
+      bgColor: "bg-[#0060ac]/10",
+      textColor: "text-[#0060ac]",
+      icon: Tv
+    };
+  }
+  if (n.includes("gym") || n.includes("fitness") || n.includes("fit life")) {
+    return {
+      bgColor: "bg-secondary/10",
+      textColor: "text-secondary",
+      icon: Activity
+    };
+  }
+
+  // Fallbacks by category
+  if (cat.includes("entertainment")) {
+    return {
+      bgColor: "bg-rose-500/10",
+      textColor: "text-rose-500",
+      icon: Film
+    };
+  }
+  if (cat.includes("utility")) {
+    return {
+      bgColor: "bg-emerald-500/10",
+      textColor: "text-emerald-500",
+      icon: Zap
+    };
+  }
+  if (cat.includes("cloud") || cat.includes("software")) {
+    return {
+      bgColor: "bg-blue-500/10",
+      textColor: "text-blue-500",
+      icon: Cloud
+    };
+  }
+  if (cat.includes("education")) {
+    return {
+      bgColor: "bg-violet-500/10",
+      textColor: "text-violet-500",
+      icon: GraduationCap
+    };
+  }
+  if (cat.includes("insurance")) {
+    return {
+      bgColor: "bg-amber-500/10",
+      textColor: "text-amber-500",
+      icon: Shield
+    };
+  }
+  return {
+    bgColor: "bg-slate-500/10",
+    textColor: "text-slate-500",
+    icon: CreditCard
+  };
+};
+
+const donutColors: Record<string, string> = {
+  "Entertainment": "#a53b29", // secondary / terracotta
+  "Utilities": "#2a6747",     // tertiary / sage green
+  "Cloud/Software": "#005da7", // primary / blue
+  "Education": "#8b5cf6",     // violet
+  "Insurance": "#f59e0b",     // amber
+  "Other": "#64748b"          // slate
+};
+
+export default function NewSubscriptionsPage() {
   const router = useRouter();
   const supabase = createClient();
 
@@ -38,10 +149,11 @@ export default function SubscriptionsPage() {
   const [planFilter, setPlanFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortField, setSortField] = useState<"renewal_date" | "cost">("renewal_date");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc"); // Default earliest first
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   // Modal Form State
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingSub, setEditingSub] = useState<any | null>(null);
   const [name, setName] = useState("");
   const [category, setCategory] = useState("Entertainment");
   const [planType, setPlanType] = useState("Monthly");
@@ -50,6 +162,20 @@ export default function SubscriptionsPage() {
   const [paymentMethod, setPaymentMethod] = useState("Credit Card");
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Toast Notification State
+  const [toast, setToast] = useState<{ show: boolean; message: string; type: "success" | "error" }>({
+    show: false,
+    message: "",
+    type: "success"
+  });
+
+  const triggerToast = (message: string, type: "success" | "error" = "success") => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, show: false }));
+    }, 3000);
+  };
 
   useEffect(() => {
     async function loadData() {
@@ -94,7 +220,7 @@ export default function SubscriptionsPage() {
     loadData();
   }, [supabase, router]);
 
-  const handleCreateSub = async (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !cost || !renewalDate || !familyId || !currentUser) return;
 
@@ -106,41 +232,83 @@ export default function SubscriptionsPage() {
       if (planLower === "yearly") billingCycle = "yearly";
       else if (planLower === "quarterly") billingCycle = "quarterly";
 
-      const { data: newSub, error } = await supabase
-        .from("subscriptions")
-        .insert({
-          family_id: familyId,
-          created_by: currentUser.id,
-          name: name.trim(),
-          cost: Number(cost),
-          billing_cycle: billingCycle,
-          plan_type: planType,
-          renewal_date: renewalDate,
-          payment_method: paymentMethod,
-          category,
-          is_active: true,
-          notes: notes.trim() || null
-        } as any)
-        .select()
-        .single();
+      const subData = {
+        name: name.trim(),
+        cost: Number(cost),
+        billing_cycle: billingCycle,
+        plan_type: planType,
+        renewal_date: renewalDate,
+        payment_method: paymentMethod,
+        category,
+        notes: notes.trim() || null
+      };
 
-      if (error) throw error;
+      if (editingSub) {
+        // Update existing subscription
+        const { data: updatedSub, error } = await supabase
+          .from("subscriptions")
+          .update(subData as any)
+          .eq("id", editingSub.id)
+          .select()
+          .single();
 
-      setSubscriptions((prev) => [...prev, newSub]);
-      setName("");
-      setCategory("Entertainment");
-      setPlanType("Monthly");
-      setCost("");
-      setRenewalDate("");
-      setPaymentMethod("Credit Card");
-      setNotes("");
+        if (error) throw error;
+
+        setSubscriptions((prev) =>
+          prev.map((s) => (s.id === editingSub.id ? updatedSub : s))
+        );
+        triggerToast("Subscription updated successfully!", "success");
+      } else {
+        // Create new subscription
+        const { data: newSub, error } = await supabase
+          .from("subscriptions")
+          .insert({
+            family_id: familyId,
+            created_by: currentUser.id,
+            is_active: true,
+            ...subData
+          } as any)
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        setSubscriptions((prev) => [...prev, newSub]);
+        triggerToast("Subscription tracked successfully!", "success");
+      }
+
       setShowCreateModal(false);
+      setEditingSub(null);
     } catch (err) {
-      console.error("Failed to create subscription:", err);
-      alert("Failed to create subscription.");
+      console.error("Failed to save subscription:", err);
+      triggerToast("Failed to save subscription.", "error");
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const openCreateModal = () => {
+    setEditingSub(null);
+    setName("");
+    setCategory("Entertainment");
+    setPlanType("Monthly");
+    setCost("");
+    setRenewalDate("");
+    setPaymentMethod("Credit Card");
+    setNotes("");
+    setShowCreateModal(true);
+  };
+
+  const openEditModal = (sub: any) => {
+    setEditingSub(sub);
+    setName(sub.name);
+    setCategory(sub.category || "Entertainment");
+    setPlanType(sub.plan_type || "Monthly");
+    setCost(String(sub.cost));
+    setRenewalDate(sub.renewal_date);
+    setPaymentMethod(sub.payment_method || "Credit Card");
+    setNotes(sub.notes || "");
+    setShowCreateModal(true);
   };
 
   const handleDeleteSub = async (subId: string) => {
@@ -150,9 +318,33 @@ export default function SubscriptionsPage() {
       const { error } = await supabase.from("subscriptions").delete().eq("id", subId);
       if (error) throw error;
       setSubscriptions((prev) => prev.filter((s) => s.id !== subId));
+      triggerToast("Subscription deleted successfully!", "success");
     } catch (err) {
       console.error("Failed to delete subscription:", err);
-      alert("Failed to delete subscription.");
+      triggerToast("Failed to delete subscription.", "error");
+    }
+  };
+
+  const toggleSubActive = async (subId: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("subscriptions")
+        .update({ is_active: !currentStatus })
+        .eq("id", subId);
+
+      if (error) throw error;
+
+      setSubscriptions((prev) =>
+        prev.map((s) => (s.id === subId ? { ...s, is_active: !currentStatus } : s))
+      );
+
+      triggerToast(
+        `Subscription ${!currentStatus ? "activated" : "paused"} successfully!`,
+        "success"
+      );
+    } catch (err) {
+      console.error("Failed to toggle subscription status:", err);
+      triggerToast("Failed to update status.", "error");
     }
   };
 
@@ -208,10 +400,10 @@ export default function SubscriptionsPage() {
         prev.map((s) => (s.id === sub.id ? { ...s, renewal_date: nextRenewal } : s))
       );
 
-      alert(`Payment of ₹${sub.cost} logged successfully! Next renewal set to ${nextRenewal}`);
+      triggerToast(`Logged ₹${sub.cost} payment! Next renewal is ${nextRenewal}`, "success");
     } catch (err) {
       console.error("Failed to log subscription payment:", err);
-      alert("Failed to log payment.");
+      triggerToast("Failed to log payment.", "error");
     }
   };
 
@@ -230,7 +422,7 @@ export default function SubscriptionsPage() {
     if (renewalDateStr <= today) {
       return {
         label: "Due / Overdue",
-        color: "bg-rose-500/10 text-rose-500 border-rose-500/20",
+        color: "bg-rose-500/10 text-rose-700 border-rose-500/20",
         dotColor: "bg-rose-500",
         code: "red"
       };
@@ -242,21 +434,22 @@ export default function SubscriptionsPage() {
     if (diffDays <= 7) {
       return {
         label: "Renewing Soon",
-        color: "bg-amber-500/10 text-amber-500 border-amber-500/20",
+        color: "bg-amber-500/10 text-amber-750 border-amber-500/20",
         dotColor: "bg-amber-500",
         code: "yellow"
       };
     }
     return {
       label: "Active / Safe",
-      color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+      color: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20",
       dotColor: "bg-emerald-500",
       code: "green"
     };
   };
 
-  // Calculations: Total outflows equivalent monthly
+  // Calculations: Total outflows equivalent monthly (only count active ones)
   const totalMonthlyOutflow = subscriptions.reduce((sum, s) => {
+    if (!s.is_active) return sum;
     const cost = Number(s.cost) || 0;
     const plan = (s.plan_type || "monthly").toLowerCase();
     if (plan === "weekly") return sum + (cost * 4.33);
@@ -290,222 +483,619 @@ export default function SubscriptionsPage() {
       }
     });
 
+  // Dynamic Insight: Upcoming Renewals in Next 7 Days
+  const getUpcomingRenewals = () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const sevenDaysLater = new Date();
+    sevenDaysLater.setDate(sevenDaysLater.getDate() + 7);
+    const sevenDaysLaterStr = sevenDaysLater.toISOString().slice(0, 10);
+
+    return subscriptions
+      .filter((sub) => {
+        return sub.is_active && sub.renewal_date >= today && sub.renewal_date <= sevenDaysLaterStr;
+      })
+      .sort((a, b) => new Date(a.renewal_date).getTime() - new Date(b.renewal_date).getTime());
+  };
+
+  const upcomingRenewalsList = getUpcomingRenewals();
+
+  // Dynamic Insight: Saving Opportunities
+  const getSavingOpportunity = () => {
+    const activeSubs = subscriptions.filter(s => s.is_active);
+    const entertainmentCount = activeSubs.filter(s => (s.category || "").toLowerCase() === "entertainment").length;
+    if (entertainmentCount >= 3) {
+      return {
+        title: "Potential Overlap",
+        desc: `You have ${entertainmentCount} active entertainment streaming services. Switching to a family bundle or pausing unused accounts can save you up to ₹750/month.`,
+        actionText: "Check bundles"
+      };
+    }
+    const expensiveSub = activeSubs.find(s => Number(s.cost) >= 2000 && (s.plan_type || "").toLowerCase() === "monthly");
+    if (expensiveSub) {
+      return {
+        title: "Billing Cycle Optimization",
+        desc: `Switching ${expensiveSub.name} (₹${expensiveSub.cost}/mo) to a yearly plan could save you up to 20% (approx ₹4,800/yr).`,
+        actionText: "Optimize plan"
+      };
+    }
+    return {
+      title: "Subscriptions Optimized",
+      desc: "Great job! All active subscriptions look consolidated. Consider reviewing memberships periodically to prune unused accounts.",
+      actionText: "View general tips"
+    };
+  };
+
+  const savingOpportunity = getSavingOpportunity();
+
+  // Categories cost breakdown for Donut Chart
+  const categoryCosts: Record<string, number> = subscriptions.reduce((acc: Record<string, number>, sub: any) => {
+    if (!sub.is_active) return acc;
+    const costValue = Number(sub.cost) || 0;
+    const plan = (sub.plan_type || "monthly").toLowerCase();
+    let monthlyCost = 0;
+    if (plan === "weekly") monthlyCost = costValue * 4.33;
+    else if (plan === "monthly") monthlyCost = costValue;
+    else if (plan === "quarterly") monthlyCost = costValue / 3;
+    else if (plan === "yearly") monthlyCost = costValue / 12;
+
+    const cat = sub.category || "Other";
+    acc[cat] = (acc[cat] || 0) + monthlyCost;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const totalOutflowActive: number = Object.values(categoryCosts).reduce((a: number, b: number) => a + b, 0);
+
+  const segments: DonutSegment[] = Object.entries(categoryCosts).map(([cat, costVal]) => {
+    const percent = totalOutflowActive > 0 ? (costVal / totalOutflowActive) * 100 : 0;
+    return {
+      category: cat,
+      cost: costVal,
+      percent,
+      color: donutColors[cat] || donutColors["Other"]
+    };
+  }).filter(s => s.percent > 0);
+
+  let accumulatedPercent = 0;
+  const strokeSegments = segments.map((seg) => {
+    const strokeDasharray = `${(seg.percent * 251.2) / 100} 251.2`;
+    const strokeDashoffset = `${-((accumulatedPercent * 251.2) / 100)}`;
+    accumulatedPercent += seg.percent;
+    return { ...seg, strokeDasharray, strokeDashoffset };
+  });
+
+  // Calculate Next 6 Months Projections
+  const getNext6MonthsOutflow = () => {
+    const months: { date: Date; label: string; cost: number }[] = [];
+    const now = new Date();
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      months.push({
+        date: d,
+        label: d.toLocaleDateString("en-IN", { month: "short" }).toUpperCase(),
+        cost: 0
+      });
+    }
+
+    subscriptions.forEach((sub: any) => {
+      if (!sub.is_active) return;
+      const costValue = Number(sub.cost) || 0;
+      const plan = (sub.plan_type || "monthly").toLowerCase();
+      const renewal = new Date(sub.renewal_date);
+
+      months.forEach((m) => {
+        const mYear = m.date.getFullYear();
+        const mMonth = m.date.getMonth();
+
+        if (plan === "weekly") {
+          m.cost += costValue * 4.33;
+        } else if (plan === "monthly") {
+          m.cost += costValue;
+        } else if (plan === "quarterly") {
+          const diffMonths = (mYear - renewal.getFullYear()) * 12 + (mMonth - renewal.getMonth());
+          if (diffMonths >= 0 && diffMonths % 3 === 0) {
+            m.cost += costValue;
+          } else if (diffMonths < 0) {
+            const absDiff = Math.abs(diffMonths);
+            if (absDiff % 3 === 0) {
+              m.cost += costValue;
+            }
+          }
+        } else if (plan === "yearly") {
+          if (mMonth === renewal.getMonth()) {
+            m.cost += costValue;
+          }
+        } else if (plan === "one-time") {
+          if (mYear === renewal.getFullYear() && mMonth === renewal.getMonth()) {
+            m.cost += costValue;
+          }
+        }
+      });
+    });
+
+    return months;
+  };
+
+  const projectionMonths = getNext6MonthsOutflow();
+  const maxMonthCost = Math.max(...projectionMonths.map(m => m.cost), 100);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-sm text-on-surface-variant font-medium">Loading subscription details…</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-8">
-      {/* Header Panel */}
+    <div className="space-y-8 max-w-7xl mx-auto">
+      
+      {/* ─── HEADER PANEL ────────────────────────────────────── */}
       <section className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
         <div>
-          <h1 className="font-heading text-4xl text-on-surface tracking-tight font-extrabold">
-            Family <span className="text-primary italic">Subscriptions</span>
-          </h1>
-          <p className="font-sans text-sm text-on-surface-variant mt-2 font-medium">
-            Track streaming services, bills, and recurring memberships dynamically.
+          <h2 className="font-heading text-3xl font-extrabold text-on-surface tracking-tight">
+            Family Subscriptions
+          </h2>
+          <p className="text-sm text-on-surface-variant font-medium mt-1">
+            Keep track of your recurring family services and digital memberships.
           </p>
         </div>
 
-        {/* Total Cost Outflow Badge */}
-        <div className="rounded bg-primary/10 border border-primary/20 px-5 py-3 text-primary font-semibold text-sm flex items-center gap-3 shadow-sm h-fit shrink-0">
-          <CreditCard className="h-5 w-5 text-primary shrink-0" />
-          <div>
-            <span className="block text-[9px] uppercase font-bold text-primary/75 tracking-wider">Outflow Equivalent</span>
-            <span className="text-base font-heading font-black">₹{totalMonthlyOutflow.toLocaleString('en-IN', { maximumFractionDigits: 0 })} / month</span>
+        <button
+          onClick={openCreateModal}
+          className="bg-secondary text-on-secondary px-5 py-2.5 rounded-full font-bold text-xs flex items-center gap-2 hover:bg-secondary/90 transition-all active:scale-95 shadow-sm w-fit"
+        >
+          <Plus className="h-4 w-4" />
+          Add Subscription
+        </button>
+      </section>
+
+      {/* ─── INSIGHTS BENTO GRID ──────────────────────────────── */}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        {/* Total Outflow Card */}
+        <div className="bg-primary-container text-on-primary-container p-6 rounded-2xl shadow-sm flex flex-col justify-between relative overflow-hidden h-[180px]">
+          <div className="relative z-10 space-y-1">
+            <span className="block text-[10px] uppercase font-bold text-primary-fixed-dim/90 tracking-wider">
+              Monthly Outflow
+            </span>
+            <div className="flex items-baseline gap-1 mt-1">
+              <span className="font-heading text-4xl font-extrabold">
+                ₹{totalMonthlyOutflow.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+              </span>
+              <span className="text-sm font-semibold opacity-85">/mo</span>
+            </div>
+          </div>
+          <div className="relative z-10 flex items-center gap-1.5 text-xs text-primary-fixed-dim font-bold">
+            <TrendingDown className="h-4 w-4" />
+            <span>Based on active services only</span>
+          </div>
+          {/* Decorative background logo */}
+          <div className="absolute -right-6 -bottom-6 opacity-10 pointer-events-none">
+            <CreditCard className="h-32 w-32" />
+          </div>
+        </div>
+
+        {/* Saving Opportunity Card */}
+        <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 flex flex-col justify-between h-[180px] shadow-xs">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-tertiary-container/10 flex items-center justify-center text-tertiary">
+                <Lightbulb className="h-4 w-4" />
+              </div>
+              <div>
+                <h4 className="font-heading text-xs font-bold text-on-surface">Saving Opportunity</h4>
+                <p className="text-[10px] text-on-surface-variant/60 font-semibold">{savingOpportunity.title}</p>
+              </div>
+            </div>
+            <p className="text-xs text-on-surface-variant font-medium leading-relaxed line-clamp-3">
+              {savingOpportunity.desc}
+            </p>
+          </div>
+          <button className="text-tertiary font-bold text-xs flex items-center gap-1 hover:underline self-start mt-1">
+            {savingOpportunity.actionText} <ArrowRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        {/* Upcoming Renewals Card */}
+        <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 flex flex-col justify-between h-[180px] shadow-xs">
+          <div className="space-y-2 flex-grow overflow-hidden">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-secondary-container/10 flex items-center justify-center text-secondary">
+                <Calendar className="h-4 w-4" />
+              </div>
+              <div>
+                <h4 className="font-heading text-xs font-bold text-on-surface">Upcoming Renewals</h4>
+                <p className="text-[10px] text-on-surface-variant/60 font-semibold">Next 7 Days</p>
+              </div>
+            </div>
+
+            <div className="space-y-1.5 mt-2 overflow-y-auto max-h-[75px] pr-1 custom-scrollbar">
+              {upcomingRenewalsList.length === 0 ? (
+                <div className="flex items-center gap-1.5 py-1 text-xs text-on-surface-variant/50 italic font-medium">
+                  <Info className="h-3.5 w-3.5 shrink-0" />
+                  <span>No active plans renewing this week</span>
+                </div>
+              ) : (
+                upcomingRenewalsList.map((sub) => (
+                  <div key={sub.id} className="flex justify-between items-center text-xs">
+                    <span className="text-on-surface-variant font-medium truncate max-w-[130px]" title={sub.name}>
+                      {sub.name}
+                    </span>
+                    <span className="font-bold text-on-surface shrink-0">
+                      ₹{Number(sub.cost).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      {/* ─── ACTIVE SERVICES CONTROLS ────────────────────────── */}
+      <section className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-4 shadow-xs flex flex-col lg:flex-row gap-4 items-center justify-between">
+        <h3 className="font-heading text-lg font-bold text-on-surface shrink-0 self-start lg:self-center">
+          Active Services
+        </h3>
+
+        <div className="w-full flex flex-col sm:flex-row gap-2.5 items-center justify-end">
+          {/* Search box */}
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-on-surface-variant/50" />
+            <Input
+              placeholder="Search subscriptions..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 bg-surface-container-low/40 border-outline-variant/40 text-xs h-9 rounded-xl focus-visible:ring-2 focus-visible:ring-primary/20 outline-none"
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="rounded-xl border border-outline-variant/40 bg-surface-container-low/40 px-3 py-1.5 text-xs text-on-surface font-semibold outline-none focus:border-primary transition-all h-9 cursor-pointer"
+            >
+              <option value="all">All Categories</option>
+              {CATEGORIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+
+            <select
+              value={planFilter}
+              onChange={(e) => setPlanFilter(e.target.value)}
+              className="rounded-xl border border-outline-variant/40 bg-surface-container-low/40 px-3 py-1.5 text-xs text-on-surface font-semibold outline-none focus:border-primary transition-all h-9 cursor-pointer"
+            >
+              <option value="all">All Plan Types</option>
+              {PLAN_TYPES.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="rounded-xl border border-outline-variant/40 bg-surface-container-low/40 px-3 py-1.5 text-xs text-on-surface font-semibold outline-none focus:border-primary transition-all h-9 cursor-pointer"
+            >
+              <option value="all">All Statuses</option>
+              <option value="red">Due / Overdue</option>
+              <option value="yellow">Renewing Soon</option>
+              <option value="green">Active / Safe</option>
+            </select>
+          </div>
+
+          {/* Sorting controls */}
+          <div className="flex gap-1.5 shrink-0 w-full sm:w-auto mt-2 sm:mt-0">
+            <button
+              onClick={() => toggleSort("cost")}
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 h-9 rounded-xl border text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer ${
+                sortField === "cost"
+                  ? "bg-primary text-on-primary border-primary"
+                  : "bg-surface-container-low/60 hover:bg-surface-container border-outline-variant/20 text-on-surface-variant"
+              }`}
+            >
+              <span>Cost</span>
+              <ArrowUpDown className="h-3 w-3" />
+            </button>
+            <button
+              onClick={() => toggleSort("renewal_date")}
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 h-9 rounded-xl border text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer ${
+                sortField === "renewal_date"
+                  ? "bg-primary text-on-primary border-primary"
+                  : "bg-surface-container-low/60 hover:bg-surface-container border-outline-variant/20 text-on-surface-variant"
+              }`}
+            >
+              <span>Date</span>
+              <ArrowUpDown className="h-3 w-3" />
+            </button>
           </div>
         </div>
       </section>
 
-      {/* Filters and Controls */}
-      <section className="glass-card rounded p-4 shadow-sm flex flex-col sm:flex-row gap-3 items-center justify-between">
-        <div className="relative w-full sm:max-w-xs">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-on-surface-variant/60" />
-          <Input
-            placeholder="Search subscriptions..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-surface-container-lowest border-outline-variant text-xs h-9 rounded"
-          />
-        </div>
+      {/* ─── SUBSCRIPTIONS CARDS GRID ────────────────────────── */}
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        
+        {filteredSubs.length === 0 ? (
+          <div className="col-span-full bg-surface-container-lowest border border-dashed border-outline-variant/40 rounded-2xl p-12 text-center text-on-surface-variant/40 font-semibold italic">
+            No subscriptions match your sorting/filtering criteria.
+          </div>
+        ) : (
+          filteredSubs.map((sub) => {
+            const statusInfo = getSubStatus(sub.renewal_date);
+            const style = getCategoryStyles(sub.name, sub.category);
+            const Icon = style.icon;
 
-        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="rounded border border-outline-variant bg-surface-container-lowest px-3 py-1.5 text-xs text-on-surface font-semibold outline-none focus:border-primary transition-all h-9"
-          >
-            <option value="all">All Categories</option>
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
+            return (
+              <div
+                key={sub.id}
+                className={`bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/25 shadow-xs flex flex-col justify-between transition-all duration-300 hover:scale-[1.01] hover:shadow-md active:scale-[0.99] ${
+                  sub.is_active ? "" : "opacity-65 grayscale-[0.2]"
+                }`}
+              >
+                <div>
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-11 h-11 ${style.bgColor} ${style.textColor} rounded-xl flex items-center justify-center`}>
+                        <Icon className="h-5 w-5 stroke-[2]" />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="font-heading font-extrabold text-on-surface text-base truncate pr-1" title={sub.name}>
+                          {sub.name}
+                        </h4>
+                        <p className="text-[10px] text-on-surface-variant/75 font-semibold truncate max-w-[130px]">
+                          {sub.notes || sub.category || "Entertainment"}
+                        </p>
+                      </div>
+                    </div>
 
-          <select
-            value={planFilter}
-            onChange={(e) => setPlanFilter(e.target.value)}
-            className="rounded border border-outline-variant bg-surface-container-lowest px-3 py-1.5 text-xs text-on-surface font-semibold outline-none focus:border-primary transition-all h-9"
-          >
-            <option value="all">All Plan Types</option>
-            {PLAN_TYPES.map((p) => (
-              <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
+                    {/* Active/Inactive Switch Toggle */}
+                    <button
+                      onClick={() => toggleSubActive(sub.id, sub.is_active)}
+                      className="flex items-center cursor-pointer outline-none relative"
+                      title={sub.is_active ? "Pause Subscription" : "Re-activate Subscription"}
+                    >
+                      <div className={`w-11 h-6 rounded-full transition-colors duration-200 flex items-center px-0.5 ${
+                        sub.is_active ? "bg-tertiary" : "bg-outline-variant/50"
+                      }`}>
+                        <div className={`w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-200 ${
+                          sub.is_active ? "translate-x-5" : "translate-x-0"
+                        }`} />
+                      </div>
+                    </button>
+                  </div>
 
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded border border-outline-variant bg-surface-container-lowest px-3 py-1.5 text-xs text-on-surface font-semibold outline-none focus:border-primary transition-all h-9"
-          >
-            <option value="all">All Statuses</option>
-            <option value="red">Due / Overdue (Red)</option>
-            <option value="yellow">Renewing Soon (Yellow)</option>
-            <option value="green">Active / Safe (Green)</option>
-          </select>
-        </div>
+                  <div className="space-y-2 py-2 border-t border-outline-variant/10 mt-3">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-on-surface-variant font-medium">Cost</span>
+                      <span className="font-bold text-on-surface font-mono">
+                        ₹{Number(sub.cost).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        <span className="text-[10px] font-sans font-semibold text-on-surface-variant/80 ml-0.5">
+                          {sub.plan_type.toLowerCase() === "weekly" ? "/wk" : sub.plan_type.toLowerCase() === "monthly" ? "/mo" : sub.plan_type.toLowerCase() === "quarterly" ? "/qtr" : sub.plan_type.toLowerCase() === "yearly" ? "/yr" : " once"}
+                        </span>
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-on-surface-variant font-medium">Next Renewal</span>
+                      <span className="font-bold text-on-surface font-mono flex items-center gap-1">
+                        <Calendar className="h-3.5 w-3.5 text-primary opacity-60" />
+                        {new Date(sub.renewal_date).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric"
+                        })}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-on-surface-variant font-medium">Payment Mode</span>
+                      <span className="font-semibold text-on-surface-variant">
+                        {sub.payment_method || "Credit Card"}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-on-surface-variant font-medium">Status</span>
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[9px] font-bold uppercase tracking-wider ${statusInfo.color}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${statusInfo.dotColor}`} />
+                        {statusInfo.label}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-outline-variant/15 flex gap-2">
+                  {/* Paid / Log Payment Button */}
+                  <button
+                    onClick={() => handleLogPayment(sub)}
+                    disabled={!sub.is_active}
+                    className={`flex-1 py-1.5 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 border active:scale-95 ${
+                      sub.is_active
+                        ? "bg-primary/10 hover:bg-primary text-primary hover:text-on-primary border-primary/20 hover:border-transparent cursor-pointer"
+                        : "bg-surface-container text-on-surface-variant/40 border-outline-variant/10 cursor-not-allowed"
+                    }`}
+                    title="Log Renewal Payment"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Paid
+                  </button>
+
+                  {/* Manage / Edit Button */}
+                  <button
+                    onClick={() => openEditModal(sub)}
+                    className="py-1.5 px-3 font-bold text-xs rounded-xl border border-outline-variant/30 text-on-surface-variant bg-surface-container-low/30 hover:bg-surface-container-low hover:text-on-surface transition-all active:scale-95 cursor-pointer"
+                    title="Edit Subscription Details"
+                  >
+                    Manage
+                  </button>
+
+                  {/* Delete Button */}
+                  <button
+                    onClick={() => handleDeleteSub(sub.id)}
+                    className="p-1.5 text-on-surface-variant/40 hover:text-error hover:bg-error-container/30 transition-all rounded-xl cursor-pointer"
+                    title="Delete Subscription"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
+
+        {/* Dashed "Track New Service" Button Card */}
+        <button
+          onClick={openCreateModal}
+          className="border-2 border-dashed border-outline-variant/40 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 text-on-surface-variant hover:bg-surface-container-low/40 transition-all duration-200 group cursor-pointer h-full min-h-[220px]"
+        >
+          <div className="w-12 h-12 rounded-full bg-surface-container group-hover:scale-110 transition-all duration-200 flex items-center justify-center text-on-surface-variant/80">
+            <Plus className="h-6 w-6 stroke-[2.5]" />
+          </div>
+          <span className="font-heading font-bold text-sm">Track New Service</span>
+          <span className="text-xs text-on-surface-variant/60 font-semibold">Add a recurring expense card</span>
+        </button>
+
       </section>
 
-      {/* Tabular Subscriptions Grid */}
-      <div className="glass-card rounded shadow-sm overflow-hidden border border-primary/10">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="bg-surface-container-low border-b border-primary/10 font-bold uppercase text-primary tracking-wider">
-                <th className="p-3.5 pl-4">Service Name</th>
-                <th className="p-3.5">Category</th>
-                <th className="p-3.5">Plan Type</th>
-                <th 
-                  onClick={() => toggleSort("cost")}
-                  className="p-3.5 cursor-pointer hover:bg-primary/5 transition-colors select-none text-right"
-                >
-                  <span className="items-center gap-1 inline-flex">
-                    Cost <ArrowUpDown className="h-3 w-3 text-primary/60" />
-                  </span>
-                </th>
-                <th 
-                  onClick={() => toggleSort("renewal_date")}
-                  className="p-3.5 cursor-pointer hover:bg-primary/5 transition-colors select-none"
-                >
-                  <span className="items-center gap-1 inline-flex">
-                    Renewal Date <ArrowUpDown className="h-3 w-3 text-primary/60" />
-                  </span>
-                </th>
-                <th className="p-3.5">Payment Method</th>
-                <th className="p-3.5">Status</th>
-                <th className="p-3.5">Notes</th>
-                <th className="p-3.5 pr-4 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-container">
-              {filteredSubs.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="p-10 text-center text-on-surface-variant/40 font-semibold italic bg-surface-container-lowest">
-                    No subscriptions match your sorting/filtering criteria.
-                  </td>
-                </tr>
+      {/* ─── CHARTS & PROJECTIONS SECTION ────────────────────── */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        
+        {/* Spending by Category (Donut Chart) */}
+        <div className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/20 shadow-xs">
+          <h4 className="font-heading text-lg font-bold text-on-surface mb-6">Spending by Category</h4>
+          
+          <div className="flex flex-col sm:flex-row items-center gap-8">
+            <div className="relative w-36 h-36 flex items-center justify-center">
+              {/* SVG donut chart */}
+              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#f3f4f6" strokeWidth="10" />
+                {strokeSegments.map((seg, idx) => (
+                  <circle
+                    key={idx}
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    fill="transparent"
+                    stroke={seg.color}
+                    strokeWidth="10"
+                    strokeDasharray={seg.strokeDasharray}
+                    strokeDashoffset={seg.strokeDashoffset}
+                    className="transition-all duration-500"
+                  />
+                ))}
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-2">
+                <span className="text-[8px] uppercase font-extrabold text-on-surface-variant/50 tracking-wider">Active Total</span>
+                <span className="text-xs font-heading font-black text-on-surface truncate max-w-full">
+                  ₹{Math.round(totalOutflowActive).toLocaleString("en-IN")}
+                </span>
+              </div>
+            </div>
+            
+            <div className="flex-1 w-full space-y-2">
+              {segments.length === 0 ? (
+                <p className="text-xs text-on-surface-variant/50 italic font-medium">No active subscriptions to display.</p>
               ) : (
-                filteredSubs.map((sub) => {
-                  const statusInfo = getSubStatus(sub.renewal_date);
-
-                  return (
-                    <tr 
-                      key={sub.id} 
-                      className="bg-surface-container-lowest hover:bg-primary/[0.02] transition-colors"
-                    >
-                      <td className="p-3.5 pl-4 font-heading font-extrabold text-on-surface text-sm">
-                        {sub.name}
-                      </td>
-                      <td className="p-3.5 font-sans font-medium text-on-surface-variant">
-                        {sub.category || "Entertainment"}
-                      </td>
-                      <td className="p-3.5 font-sans font-bold text-primary">
-                        {sub.plan_type || "Monthly"}
-                      </td>
-                      <td className="p-3.5 text-right font-mono font-bold text-on-surface">
-                        ₹{Number(sub.cost).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="p-3.5 font-mono font-bold text-on-surface">
-                        <span className="inline-flex items-center gap-1">
-                          <Calendar className="h-3 w-3 text-primary" />
-                          {new Date(sub.renewal_date).toLocaleDateString("en-IN", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric"
-                          })}
-                        </span>
-                      </td>
-                      <td className="p-3.5 font-sans font-semibold text-on-surface-variant">
-                        {sub.payment_method || "Credit Card"}
-                      </td>
-                      <td className="p-3.5">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-widest ${statusInfo.color}`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${statusInfo.dotColor}`} />
-                          {statusInfo.label}
-                        </span>
-                      </td>
-                      <td className="p-3.5 font-sans text-on-surface-variant max-w-xs truncate" title={sub.notes}>
-                        {sub.notes || <span className="italic opacity-40 font-normal">None</span>}
-                      </td>
-                      <td className="p-3.5 pr-4 text-center">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <button
-                            onClick={() => handleLogPayment(sub)}
-                            className="flex items-center gap-1 py-1 px-2.5 bg-primary/10 hover:bg-primary text-primary hover:text-white border border-primary/20 hover:border-transparent text-[9px] font-bold uppercase tracking-wider rounded transition-all cursor-pointer"
-                            title="Log Renewal Payment"
-                          >
-                            <CheckCircle2 className="h-2.5 w-2.5" /> Paid
-                          </button>
-                          <button
-                            onClick={() => handleDeleteSub(sub.id)}
-                            className="p-1.5 text-on-surface-variant/40 hover:text-primary transition-all rounded hover:bg-primary/10 cursor-pointer"
-                            title="Delete Subscription"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
+                segments.map((seg, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-xs font-semibold">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: seg.color }} />
+                      <span className="text-on-surface-variant truncate max-w-[120px]">{seg.category}</span>
+                    </div>
+                    <div className="font-mono text-on-surface flex items-center gap-2">
+                      <span className="font-bold">₹{Math.round(seg.cost).toLocaleString("en-IN")}/mo</span>
+                      <span className="text-[10px] text-on-surface-variant/65 bg-surface-container px-1.5 py-0.5 rounded-md shrink-0">
+                        {Math.round(seg.percent)}%
+                      </span>
+                    </div>
+                  </div>
+                ))
               )}
-            </tbody>
-          </table>
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Button to open Modal */}
-      <div className="flex justify-center pt-2">
-        <Button
-          onClick={() => setShowCreateModal(true)}
-          className="bg-primary hover:bg-primary-container text-white px-8 h-12 gap-2 text-sm font-bold shadow-lg shadow-primary/20 rounded cursor-pointer animate-neon-text active:scale-95 transition-all"
-        >
-          <Plus className="h-5 w-5" /> Track Subscription
-        </Button>
-      </div>
+        {/* Annual Projections (Bar Chart) */}
+        <div className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/20 shadow-xs">
+          <h4 className="font-heading text-lg font-bold text-on-surface mb-2">Annual Projection</h4>
+          <p className="text-xs text-on-surface-variant font-medium mb-6">Visual monthly outflows projection for the next 6 months.</p>
 
-      {/* Add Subscription Modal */}
+          <div className="flex flex-col h-[180px] justify-between">
+            <div className="flex items-end gap-3 h-24 mb-3">
+              {projectionMonths.map((m, idx) => {
+                const heightPercent = `${Math.max((m.cost / maxMonthCost) * 100, 8)}%`;
+                return (
+                  <div key={idx} className="flex-1 flex flex-col items-center group relative h-full justify-end">
+                    {/* Tooltip */}
+                    <div className="absolute -top-10 scale-0 group-hover:scale-100 transition-all duration-200 bg-inverse-surface text-inverse-on-surface text-[10px] font-bold px-2.5 py-1.5 rounded-xl shadow-md z-10 whitespace-nowrap">
+                      ₹{Math.round(m.cost).toLocaleString("en-IN")}
+                    </div>
+                    {/* Bar */}
+                    <div 
+                      className="w-full bg-primary-container rounded-t-lg group-hover:bg-primary transition-all duration-300 relative cursor-pointer"
+                      style={{ height: heightPercent }}
+                    >
+                      {idx === 0 && (
+                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded-md whitespace-nowrap">
+                          Now
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            
+            <div className="flex justify-between text-[10px] text-on-surface-variant/60 font-bold uppercase px-1">
+              {projectionMonths.map((m, idx) => (
+                <span key={idx} className="flex-1 text-center">{m.label}</span>
+              ))}
+            </div>
+            
+            <p className="mt-4 text-xs text-on-surface-variant font-medium italic text-center">
+              Projected annual spend:{" "}
+              <span className="font-heading font-black text-sm text-on-surface not-italic">
+                ₹{(totalOutflowActive * 12).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+              </span>
+            </p>
+          </div>
+        </div>
+
+      </section>
+
+      {/* ─── ADD/EDIT SUBSCRIPTION MODAL ────────────────────── */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div 
-            className="fixed inset-0 bg-black/30 backdrop-blur-xs" 
-            onClick={() => setShowCreateModal(false)} 
+            className="fixed inset-0 bg-black/40 backdrop-blur-xs" 
+            onClick={() => { setShowCreateModal(false); setEditingSub(null); }} 
           />
 
           <form 
-            onSubmit={handleCreateSub} 
-            className="relative z-10 w-full max-w-lg glass-card rounded p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150"
+            onSubmit={handleFormSubmit} 
+            className="relative z-10 w-full max-w-lg bg-surface-container-lowest rounded-2xl p-6 shadow-2xl border border-outline-variant/20 space-y-4 animate-in fade-in zoom-in-95 duration-150"
           >
-            <div className="flex items-center justify-between pb-3 border-b border-primary/10">
+            <div className="flex items-center justify-between pb-3 border-b border-outline-variant/15">
               <h3 className="font-heading text-lg font-bold text-primary flex items-center gap-2">
-                <CreditCard className="h-5 w-5" /> Track Subscription
+                <CreditCard className="h-5 w-5" />
+                {editingSub ? "Edit Subscription" : "Track Subscription"}
               </h3>
               <button 
                 type="button"
-                onClick={() => setShowCreateModal(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant/60 hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer"
+                onClick={() => { setShowCreateModal(false); setEditingSub(null); }}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant/60 hover:bg-surface-container-high transition-colors cursor-pointer"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <Label htmlFor="subName" className="text-[10px] font-bold uppercase tracking-wider text-primary">Service Name</Label>
                 <Input
                   id="subName"
@@ -513,18 +1103,18 @@ export default function SubscriptionsPage() {
                   placeholder="e.g. Netflix, Spotify Premium"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="bg-surface-container-lowest border-outline-variant rounded focus:border-primary text-xs"
+                  className="bg-surface-container-lowest border-outline-variant/40 rounded-xl focus-visible:ring-2 focus-visible:ring-primary/20 text-xs h-10 outline-none"
                   required
                 />
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <Label htmlFor="subCategory" className="text-[10px] font-bold uppercase tracking-wider text-primary">Category</Label>
                 <select
                   id="subCategory"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 text-xs text-on-surface focus:border-primary focus:outline-none transition-colors font-semibold"
+                  className="w-full rounded-xl border border-outline-variant/40 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-semibold outline-none h-10 cursor-pointer"
                 >
                   {CATEGORIES.map((c) => (
                     <option key={c} value={c}>{c}</option>
@@ -534,10 +1124,10 @@ export default function SubscriptionsPage() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <Label htmlFor="subCost" className="text-[10px] font-bold uppercase tracking-wider text-primary">Cost (INR)</Label>
                 <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-xs text-on-surface-variant font-bold">₹</span>
+                  <span className="absolute left-3.5 top-2.5 text-xs text-on-surface-variant/65 font-bold">₹</span>
                   <Input
                     id="subCost"
                     type="number"
@@ -545,19 +1135,19 @@ export default function SubscriptionsPage() {
                     placeholder="0.00"
                     value={cost}
                     onChange={(e) => setCost(e.target.value)}
-                    className="pl-7 bg-surface-container-lowest border-outline-variant rounded focus:border-primary text-xs font-bold"
+                    className="pl-7.5 bg-surface-container-lowest border-outline-variant/40 rounded-xl focus-visible:ring-2 focus-visible:ring-primary/20 text-xs font-bold h-10 outline-none"
                     required
                   />
                 </div>
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <Label htmlFor="subPlan" className="text-[10px] font-bold uppercase tracking-wider text-primary">Plan Type</Label>
                 <select
                   id="subPlan"
                   value={planType}
                   onChange={(e) => setPlanType(e.target.value)}
-                  className="w-full rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 text-xs text-on-surface focus:border-primary focus:outline-none transition-colors font-semibold"
+                  className="w-full rounded-xl border border-outline-variant/40 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-semibold outline-none h-10 cursor-pointer"
                 >
                   {PLAN_TYPES.map((p) => (
                     <option key={p} value={p}>{p}</option>
@@ -567,25 +1157,25 @@ export default function SubscriptionsPage() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <Label htmlFor="subRenewal" className="text-[10px] font-bold uppercase tracking-wider text-primary">Next Renewal Date</Label>
                 <Input
                   id="subRenewal"
                   type="date"
                   value={renewalDate}
                   onChange={(e) => setRenewalDate(e.target.value)}
-                  className="bg-surface-container-lowest border-outline-variant rounded focus:border-primary text-xs"
+                  className="bg-surface-container-lowest border-outline-variant/40 rounded-xl focus-visible:ring-2 focus-visible:ring-primary/20 text-xs h-10 outline-none"
                   required
                 />
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <Label htmlFor="subPayment" className="text-[10px] font-bold uppercase tracking-wider text-primary">Payment Method</Label>
                 <select
                   id="subPayment"
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="w-full rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 text-xs text-on-surface focus:border-primary focus:outline-none transition-colors font-semibold"
+                  className="w-full rounded-xl border border-outline-variant/40 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-semibold outline-none h-10 cursor-pointer"
                 >
                   {PAYMENT_METHODS.map((pm) => (
                     <option key={pm} value={pm}>{pm}</option>
@@ -594,7 +1184,7 @@ export default function SubscriptionsPage() {
               </div>
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <Label htmlFor="subNotes" className="text-[10px] font-bold uppercase tracking-wider text-primary">Notes (Optional)</Label>
               <Input
                 id="subNotes"
@@ -602,20 +1192,39 @@ export default function SubscriptionsPage() {
                 placeholder="Linked account details, card used..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="bg-surface-container-lowest border-outline-variant rounded focus:border-primary text-xs"
+                className="bg-surface-container-lowest border-outline-variant/40 rounded-xl focus-visible:ring-2 focus-visible:ring-primary/20 text-xs h-10 outline-none"
               />
             </div>
 
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full mt-2 bg-primary hover:bg-primary-container text-white py-3 rounded active:scale-95 transition-all shadow-md font-sans text-xs font-bold uppercase tracking-widest cursor-pointer"
+              className="w-full mt-2 bg-primary hover:bg-primary-container text-white py-3 rounded-xl active:scale-95 transition-all shadow-md font-sans text-xs font-bold uppercase tracking-widest cursor-pointer h-11"
             >
-              {isSubmitting ? "Tracking Subscription..." : "Track Subscription"}
+              {isSubmitting
+                ? "Saving..."
+                : editingSub
+                ? "Save Changes"
+                : "Track Subscription"}
             </Button>
           </form>
         </div>
       )}
+
+      {/* ─── TOAST NOTIFICATION ──────────────────────────────── */}
+      {toast.show && (
+        <div className="fixed bottom-6 right-6 z-[100] animate-in fade-in slide-in-from-bottom-5 duration-300">
+          <div className={`px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 border ${
+            toast.type === "success" 
+              ? "bg-tertiary-container text-on-tertiary-container border-tertiary/20" 
+              : "bg-destructive/10 text-destructive border-destructive/20"
+          }`}>
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <p className="text-xs font-bold leading-none">{toast.message}</p>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

@@ -110,7 +110,7 @@ export default async function OnboardingPage({
   const defaultDisplayName = data.user.user_metadata?.display_name || "";
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#faf8ff] px-4 py-12 sm:px-6 lg:px-8">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-12 sm:px-6 lg:px-8">
       {/* Ambient background glows */}
       <div className="absolute -top-40 -left-40 h-96 w-96 rounded-full bg-primary/10 blur-[120px]" />
       <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-tertiary/10 blur-[120px]" />
@@ -130,7 +130,7 @@ export default async function OnboardingPage({
         </div>
 
         {/* Card Container */}
-        <div className="mt-8 glass-card p-6 rounded shadow-xl">
+        <div className="mt-8 glass-card p-6 rounded-2xl shadow-xl">
           
           {/* Tab Switcher */}
           <div className="grid grid-cols-2 gap-2 rounded bg-surface-container p-1 border border-outline-variant">

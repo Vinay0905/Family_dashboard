@@ -40,7 +40,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#faf8ff] px-4 py-12 sm:px-6 lg:px-8">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-12 sm:px-6 lg:px-8">
       {/* Decorative ambient background glows */}
       <div className="absolute -top-40 -left-40 h-96 w-96 rounded-full bg-primary/10 blur-[120px]" />
       <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-tertiary/10 blur-[120px]" />
@@ -60,7 +60,7 @@ export default function LoginPage() {
         </div>
 
         {/* Form Container Card */}
-        <div className="mt-8 glass-card p-8 rounded shadow-xl">
+        <div className="mt-8 glass-card p-8 rounded-2xl shadow-xl">
           <form onSubmit={onSubmit} className="space-y-5">
             {error ? (
               <div className="rounded border border-primary/20 bg-primary/5 p-3 text-sm text-primary flex items-start gap-2 animate-shake font-medium">

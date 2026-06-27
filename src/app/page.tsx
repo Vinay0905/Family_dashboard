@@ -13,7 +13,7 @@ import {
 
 export default function HomePage() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#faf8ff] text-on-surface font-sans">
+    <div className="relative min-h-screen overflow-hidden bg-background text-on-surface font-sans">
       {/* Background ambient light effects */}
       <div className="absolute top-0 left-1/4 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-primary/10 blur-[100px]" />
       <div className="absolute top-1/3 right-1/4 h-[600px] w-[600px] translate-x-1/2 rounded-full bg-tertiary/10 blur-[120px]" />
