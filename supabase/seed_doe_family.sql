@@ -47,11 +47,11 @@ VALUES
 -- 7. ADD CHORES / TASKS
 INSERT INTO public.tasks (family_id, created_by, title, description, due_date, priority, status, assigned_to)
 VALUES
-  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'a1b2c3d4-e5f6-4a8b-9c0d-1e2f3a4b5c6d', 'Fix kitchen sink leak', 'Call plumber if needed. Pipe under sink is dripping.', (current_date + 1)::text, 'high', 'in_progress', 'a1b2c3d4-e5f6-4a8b-9c0d-1e2f3a4b5c6d'),
-  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e', 'Buy weekly groceries', 'Milk, eggs, apples, whole wheat bread, dish soap', current_date::text, 'medium', 'completed', 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e'),
-  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e', 'Finish math homework', 'Geometry practice exercises 4 to 8', (current_date + 2)::text, 'medium', 'open', 'c3d4e5f6-a7b8-4c9d-8e1f-2f3a4b5c6d7e8f'),
-  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'a1b2c3d4-e5f6-4a8b-9c0d-1e2f3a4b5c6d', 'Mow front lawn', 'Trim the garden borders as well', (current_date + 4)::text, 'low', 'open', 'a1b2c3d4-e5f6-4a8b-9c0d-1e2f3a4b5c6d'),
-  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'a1b2c3d4-e5f6-4a8b-9c0d-1e2f3a4b5c6d', 'Clean study table and organize books', 'Put all school notebooks in correct drawers', current_date::text, 'low', 'completed', 'c3d4e5f6-a7b8-4c9d-8e1f-2f3a4b5c6d7e8f');
+  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'a1b2c3d4-e5f6-4a8b-9c0d-1e2f3a4b5c6d', 'Fix kitchen sink leak', 'Call plumber if needed. Pipe under sink is dripping.', (current_date + 1), 'high', 'in_progress', 'a1b2c3d4-e5f6-4a8b-9c0d-1e2f3a4b5c6d'),
+  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e', 'Buy weekly groceries', 'Milk, eggs, apples, whole wheat bread, dish soap', current_date, 'medium', 'completed', 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e'),
+  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e', 'Finish math homework', 'Geometry practice exercises 4 to 8', (current_date + 2), 'medium', 'open', 'c3d4e5f6-a7b8-4c9d-8e1f-2f3a4b5c6d7e'),
+  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'a1b2c3d4-e5f6-4a8b-9c0d-1e2f3a4b5c6d', 'Mow front lawn', 'Trim the garden borders as well', (current_date + 4), 'low', 'open', 'a1b2c3d4-e5f6-4a8b-9c0d-1e2f3a4b5c6d'),
+  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'a1b2c3d4-e5f6-4a8b-9c0d-1e2f3a4b5c6d', 'Clean study table and organize books', 'Put all school notebooks in correct drawers', current_date, 'low', 'completed', 'c3d4e5f6-a7b8-4c9d-8e1f-2f3a4b5c6d7e');
 
 -- 8. ADD SHOPPING LISTS AND ITEMS
 INSERT INTO public.shopping_lists (id, family_id, created_by, name)
@@ -71,7 +71,7 @@ VALUES
   ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e', 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e', 3500.00, 'utilities', 'June Electricity Bill Payment', current_date - 3),
   ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'a1b2c3d4-e5f6-4a8b-9c0d-1e2f3a4b5c6d', 'a1b2c3d4-e5f6-4a8b-9c0d-1e2f3a4b5c6d', 4500.00, 'grocery', 'Weekly groceries at Nature Basket', current_date),
   ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'a1b2c3d4-e5f6-4a8b-9c0d-1e2f3a4b5c6d', 'a1b2c3d4-e5f6-4a8b-9c0d-1e2f3a4b5c6d', 1500.00, 'utilities', 'Water Purifier filter replacement service', current_date - 1),
-  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e-2f3a4b5c6d7e', 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e', 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e', 2800.00, 'education', 'Jimmy school textbooks & geometry box', current_date - 5),
+  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e', 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e', 2800.00, 'education', 'Jimmy school textbooks & geometry box', current_date - 5),
   ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'a1b2c3d4-e5f6-4a8b-9c0d-1e2f3a4b5c6d', 'a1b2c3d4-e5f6-4a8b-9c0d-1e2f3a4b5c6d', 1800.00, 'entertainment', 'Family outing - Dinner and Movie ticket', current_date - 2);
 
 -- 10. ADD ACTIVE SUBSCRIPTIONS
@@ -79,7 +79,7 @@ INSERT INTO public.subscriptions (family_id, created_by, name, cost, billing_cyc
 VALUES
   ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'a1b2c3d4-e5f6-4a8b-9c0d-1e2f3a4b5c6d', 'Netflix Premium 4K', 649.00, 'monthly', current_date + 3, true, 'Auto-renewal linked to ICICI CC'),
   ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'a1b2c3d4-e5f6-4a8b-9c0d-1e2f3a4b5c6d', 'Spotify Family Plan', 179.00, 'monthly', current_date + 10, true, 'Primary account: John Doe'),
-  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e-2f3a4b5c6d7e', 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e', 'Amazon Prime Annual', 1499.00, 'yearly', current_date + 45, true, 'Charged yearly. Shopping & Video.');
+  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e', 'Amazon Prime Annual', 1499.00, 'yearly', current_date + 45, true, 'Charged yearly. Shopping & Video.');
 
 -- 11. ADD HOLIDAY PLANS
 INSERT INTO public.holiday_plans (family_id, created_by, destination, start_date, end_date, budget_estimate, notes, packing_list)
@@ -99,4 +99,4 @@ INSERT INTO public.reminders (family_id, created_by, title, remind_at, category,
 VALUES
   ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'a1b2c3d4-e5f6-4a8b-9c0d-1e2f3a4b5c6d', 'Pay Monthly Rent (INR 25,000)', (current_date + 2)::timestamp + time '10:00:00', 'bill', false),
   ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'a1b2c3d4-e5f6-4a8b-9c0d-1e2f3a4b5c6d', 'Car Pollution Certificate Renewal', (current_date + 7)::timestamp + time '09:00:00', 'renewal', false),
-  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e-2f3a4b5c6d7e', 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e', 'Janes Anniversary Dinner Reservation', (current_date + 12)::timestamp + time '19:30:00', 'birthday', false);
+  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e', 'Janes Anniversary Dinner Reservation', (current_date + 12)::timestamp + time '19:30:00', 'birthday', false);
