@@ -40,16 +40,16 @@ VALUES
 INSERT INTO public.events (family_id, created_by, title, description, start_at, end_at, category, location)
 VALUES
   ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'a1b2c3d4-e5f6-4a8b-9c0d-1e2f3a4b5c6d', 'Family Goa Vacation Plan', 'Discuss travel tickets and packing list', now() + interval '1 day', now() + interval '1 day 2 hours', 'family', 'Living Room'),
-  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e-2f3a4b5c6d7e', 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e', 'Jimmy Soccer Tournament', 'Cheer for Jimmy in the regional finals!', now() + interval '3 days', now() + interval '3 days 4 hours', 'school', 'City Sports Center'),
+  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e', 'Jimmy Soccer Tournament', 'Cheer for Jimmy in the regional finals!', now() + interval '3 days', now() + interval '3 days 4 hours', 'school', 'City Sports Center'),
   ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'a1b2c3d4-e5f6-4a8b-9c0d-1e2f3a4b5c6d', 'AC Filter Service Appointment', 'Climate Pro technician visiting for routine service', now() + interval '5 days', now() + interval '5 days 1 hour', 'other', 'Home'),
-  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e-2f3a4b5c6d7e', 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e', 'Annual Health Checkup', 'Routine checkup for Jane and Jimmy', now() + interval '6 days 2 hours', now() + interval '6 days 4 hours', 'medical', 'Apollo Clinics');
+  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e', 'Annual Health Checkup', 'Routine checkup for Jane and Jimmy', now() + interval '6 days 2 hours', now() + interval '6 days 4 hours', 'medical', 'Apollo Clinics');
 
 -- 7. ADD CHORES / TASKS
 INSERT INTO public.tasks (family_id, created_by, title, description, due_date, priority, status, assigned_to)
 VALUES
   ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'a1b2c3d4-e5f6-4a8b-9c0d-1e2f3a4b5c6d', 'Fix kitchen sink leak', 'Call plumber if needed. Pipe under sink is dripping.', (current_date + 1)::text, 'high', 'in_progress', 'a1b2c3d4-e5f6-4a8b-9c0d-1e2f3a4b5c6d'),
-  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e-2f3a4b5c6d7e', 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e', 'Buy weekly groceries', 'Milk, eggs, apples, whole wheat bread, dish soap', current_date::text, 'medium', 'completed', 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e'),
-  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e-2f3a4b5c6d7e', 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e', 'Finish math homework', 'Geometry practice exercises 4 to 8', (current_date + 2)::text, 'medium', 'open', 'c3d4e5f6-a7b8-4c9d-8e1f-2f3a4b5c6d7e8f'),
+  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e', 'Buy weekly groceries', 'Milk, eggs, apples, whole wheat bread, dish soap', current_date::text, 'medium', 'completed', 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e'),
+  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e', 'Finish math homework', 'Geometry practice exercises 4 to 8', (current_date + 2)::text, 'medium', 'open', 'c3d4e5f6-a7b8-4c9d-8e1f-2f3a4b5c6d7e8f'),
   ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'a1b2c3d4-e5f6-4a8b-9c0d-1e2f3a4b5c6d', 'Mow front lawn', 'Trim the garden borders as well', (current_date + 4)::text, 'low', 'open', 'a1b2c3d4-e5f6-4a8b-9c0d-1e2f3a4b5c6d'),
   ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'a1b2c3d4-e5f6-4a8b-9c0d-1e2f3a4b5c6d', 'Clean study table and organize books', 'Put all school notebooks in correct drawers', current_date::text, 'low', 'completed', 'c3d4e5f6-a7b8-4c9d-8e1f-2f3a4b5c6d7e8f');
 
@@ -60,10 +60,10 @@ VALUES ('a2b3c4d5-e6f7-4a9b-8c1d-2e3f4a5b6c7d', 'f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3
 INSERT INTO public.shopping_items (family_id, list_id, name, quantity, unit, category, is_purchased, added_by)
 VALUES
   ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'a2b3c4d5-e6f7-4a9b-8c1d-2e3f4a5b6c7d', 'Organic Whole Milk 2L', 2, 'bottles', 'groceries', true, 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e'),
-  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e-2f3a4b5c6d7e', 'a2b3c4d5-e6f7-4a9b-8c1d-2e3f4a5b6c7d', 'Red Fuji Apples', 1, 'kg', 'groceries', false, 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e'),
-  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e-2f3a4b5c6d7e', 'a2b3c4d5-e6f7-4a9b-8c1d-2e3f4a5b6c7d', 'Whole Wheat Sourdough Bread', 1, 'loaf', 'groceries', false, 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e'),
-  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e-2f3a4b5c6d7e', 'a2b3c4d5-e6f7-4a9b-8c1d-2e3f4a5b6c7d', 'Fresh Cage-Free Eggs (Dozen)', 1, 'carton', 'groceries', true, 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e'),
-  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e-2f3a4b5c6d7e', 'a2b3c4d5-e6f7-4a9b-8c1d-2e3f4a5b6c7d', 'Liquid Dish Soap', 1, 'bottle', 'other', false, 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e');
+  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'a2b3c4d5-e6f7-4a9b-8c1d-2e3f4a5b6c7d', 'Red Fuji Apples', 1, 'kg', 'groceries', false, 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e'),
+  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'a2b3c4d5-e6f7-4a9b-8c1d-2e3f4a5b6c7d', 'Whole Wheat Sourdough Bread', 1, 'loaf', 'groceries', false, 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e'),
+  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'a2b3c4d5-e6f7-4a9b-8c1d-2e3f4a5b6c7d', 'Fresh Cage-Free Eggs (Dozen)', 1, 'carton', 'groceries', true, 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e'),
+  ('f1a9b8c7-d6e5-4f3a-8b9c-0d1e2f3a4b5c', 'a2b3c4d5-e6f7-4a9b-8c1d-2e3f4a5b6c7d', 'Liquid Dish Soap', 1, 'bottle', 'other', false, 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e');
 
 -- 9. ADD EXPENSES (For the current month and last week)
 INSERT INTO public.expenses (family_id, created_by, paid_by, amount, category, description, expense_date)
