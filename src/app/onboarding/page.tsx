@@ -1,10 +1,14 @@
-import { redirect, isRedirectError } from "next/navigation";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Heart, PlusCircle, UserPlus, Info, CheckCircle2 } from "lucide-react";
+
+function isRedirectError(err: any): boolean {
+  return err instanceof Error && (err as any).digest?.startsWith("NEXT_REDIRECT");
+}
 
 function redirectWithError(message: string, tab: string = "create"): never {
   redirect(`/onboarding?tab=${tab}&error=${encodeURIComponent(message)}`);

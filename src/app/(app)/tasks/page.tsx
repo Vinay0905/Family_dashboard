@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useAppStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,45 +54,73 @@ export default function TasksPage() {
   const [assignedTo, setAssignedTo] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const { familyId: cachedFamilyId, familyMembers: cachedMembers, currentUser: cachedUser, memberRole: cachedRole, isInitialized, setAppInfo } = useAppStore();
+
   useEffect(() => {
     async function loadData() {
       setLoading(true);
       try {
-        const { data: userData } = await supabase.auth.getUser();
-        if (!userData.user) {
-          router.push("/login");
-          return;
+        let activeUser = cachedUser;
+        let activeFamilyId = cachedFamilyId;
+        let activeRole = cachedRole;
+        let activeMembers = cachedMembers;
+
+        if (!isInitialized) {
+          const { data: userData } = await supabase.auth.getUser();
+          if (!userData.user) {
+            router.push("/login");
+            return;
+          }
+          activeUser = userData.user;
+          setCurrentUser(userData.user);
+
+          // Get family membership
+          const { data: memberData } = await supabase
+            .from("family_members")
+            .select("family_id, role")
+            .eq("user_id", userData.user.id)
+            .maybeSingle();
+
+          if (!memberData) {
+            router.push("/onboarding");
+            return;
+          }
+          activeFamilyId = memberData.family_id;
+          activeRole = memberData.role;
+          setFamilyId(memberData.family_id);
+          setMemberRole(memberData.role);
+
+          // Fetch family members
+          const { data: membersData } = await supabase
+            .from("family_members")
+            .select("user_id, display_name, role")
+            .eq("family_id", memberData.family_id);
+
+          if (membersData) {
+            activeMembers = membersData;
+            setFamilyMembers(membersData);
+          }
+
+          setAppInfo({
+            familyId: activeFamilyId,
+            familyMembers: activeMembers,
+            currentUser: activeUser,
+            memberRole: activeRole
+          });
+        } else {
+          setCurrentUser(cachedUser);
+          setFamilyId(cachedFamilyId);
+          setMemberRole(cachedRole);
+          setFamilyMembers(cachedMembers);
         }
-        setCurrentUser(userData.user);
 
-        // Get family membership
-        const { data: memberData } = await supabase
-          .from("family_members")
-          .select("family_id, role")
-          .eq("user_id", userData.user.id)
-          .maybeSingle();
-
-        if (!memberData) {
-          router.push("/onboarding");
-          return;
-        }
-        setFamilyId(memberData.family_id);
-        setMemberRole(memberData.role);
-
-        // Fetch family members
-        const { data: membersData } = await supabase
-          .from("family_members")
-          .select("user_id, display_name, role");
-
-        if (membersData) {
-          setFamilyMembers(membersData);
-        }
+        if (!activeFamilyId) return;
 
         // Fetch tasks
         const { data: tasksData } = await supabase
           .from("tasks")
           .select("*")
-          .eq("family_id", memberData.family_id);
+          .eq("family_id", activeFamilyId);
 
         if (tasksData) {
           setTasks(tasksData);
@@ -104,7 +133,7 @@ export default function TasksPage() {
     }
 
     loadData();
-  }, [supabase, router]);
+  }, [supabase, router, cachedFamilyId, cachedMembers, cachedUser, cachedRole, isInitialized, setAppInfo]);
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
