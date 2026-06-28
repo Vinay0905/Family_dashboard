@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { redirect, isRedirectError } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
@@ -13,78 +13,88 @@ function redirectWithError(message: string, tab: string = "create"): never {
 async function createFamily(formData: FormData) {
   "use server";
 
-  const familyName = String(formData.get("familyName") || "").trim();
-  const displayName = String(formData.get("displayName") || "").trim();
-  const supabase = await createClient();
-  const { data: userData } = await supabase.auth.getUser();
+  try {
+    const familyName = String(formData.get("familyName") || "").trim();
+    const displayName = String(formData.get("displayName") || "").trim();
+    const supabase = await createClient();
+    const { data: userData } = await supabase.auth.getUser();
 
-  if (!userData.user) redirect("/login");
-  if (!familyName) redirectWithError("Please enter a family name.", "create");
+    if (!userData.user) redirect("/login");
+    if (!familyName) redirectWithError("Please enter a family name.", "create");
 
-  const { data: family, error } = await supabase
-    .from("families")
-    .insert({ name: familyName, created_by: userData.user.id })
-    .select("id")
-    .single();
+    const { data: family, error } = await supabase
+      .from("families")
+      .insert({ name: familyName, created_by: userData.user.id })
+      .select("id")
+      .single();
 
-  if (error || !family) {
-    redirectWithError(error?.message ?? "Could not create family.", "create");
-  }
+    if (error || !family) {
+      redirectWithError(error?.message ?? "Could not create family.", "create");
+    }
 
-  const finalDisplayName = displayName || userData.user.user_metadata?.display_name || userData.user.email;
+    const finalDisplayName = displayName || userData.user.user_metadata?.display_name || userData.user.email;
 
-  const { error: memberError } = await supabase.from("family_members").insert({
-    family_id: family.id,
-    user_id: userData.user.id,
-    role: "admin",
-    display_name: finalDisplayName,
-  });
-
-  if (memberError) {
-    redirectWithError(memberError.message, "create");
-  }
-
-  // Also update user metadata display_name if not set
-  if (displayName) {
-    await supabase.auth.updateUser({
-      data: { display_name: displayName }
+    const { error: memberError } = await supabase.from("family_members").insert({
+      family_id: family.id,
+      user_id: userData.user.id,
+      role: "admin",
+      display_name: finalDisplayName,
     });
-  }
 
-  redirect("/dashboard");
+    if (memberError) {
+      redirectWithError(memberError.message, "create");
+    }
+
+    // Also update user metadata display_name if not set
+    if (displayName) {
+      await supabase.auth.updateUser({
+        data: { display_name: displayName }
+      });
+    }
+
+    redirect("/dashboard");
+  } catch (err) {
+    if (isRedirectError(err)) throw err;
+    redirectWithError(err instanceof Error ? err.message : "An unexpected error occurred", "create");
+  }
 }
 
 async function joinFamily(formData: FormData) {
   "use server";
 
-  const inviteCode = String(formData.get("inviteCode") || "").trim().toLowerCase();
-  const displayName = String(formData.get("displayName") || "").trim();
-  const supabase = await createClient();
-  const { data: userData } = await supabase.auth.getUser();
+  try {
+    const inviteCode = String(formData.get("inviteCode") || "").trim().toLowerCase();
+    const displayName = String(formData.get("displayName") || "").trim();
+    const supabase = await createClient();
+    const { data: userData } = await supabase.auth.getUser();
 
-  if (!userData.user) redirect("/login");
-  if (!inviteCode) redirectWithError("Please enter an invite code.", "join");
+    if (!userData.user) redirect("/login");
+    if (!inviteCode) redirectWithError("Please enter an invite code.", "join");
 
-  const finalDisplayName = displayName || userData.user.user_metadata?.display_name || userData.user.email || "Family Member";
+    const finalDisplayName = displayName || userData.user.user_metadata?.display_name || userData.user.email || "Family Member";
 
-  // Use RPC to join because RLS restricts SELECT queries on families for non-members
-  const { error: joinError } = await supabase.rpc("join_family_by_code" as any, {
-    invite_code_input: inviteCode,
-    display_name_input: finalDisplayName,
-  });
-
-  if (joinError) {
-    redirectWithError(joinError.message || "Invalid invite code. Please check and try again.", "join");
-  }
-
-  // Update user metadata display_name if provided
-  if (displayName) {
-    await supabase.auth.updateUser({
-      data: { display_name: displayName }
+    // Use RPC to join because RLS restricts SELECT queries on families for non-members
+    const { error: joinError } = await supabase.rpc("join_family_by_code" as any, {
+      invite_code_input: inviteCode,
+      display_name_input: finalDisplayName,
     });
-  }
 
-  redirect("/dashboard");
+    if (joinError) {
+      redirectWithError(joinError.message || "Invalid invite code. Please check and try again.", "join");
+    }
+
+    // Update user metadata display_name if provided
+    if (displayName) {
+      await supabase.auth.updateUser({
+        data: { display_name: displayName }
+      });
+    }
+
+    redirect("/dashboard");
+  } catch (err) {
+    if (isRedirectError(err)) throw err;
+    redirectWithError(err instanceof Error ? err.message : "An unexpected error occurred", "join");
+  }
 }
 
 export default async function OnboardingPage({
