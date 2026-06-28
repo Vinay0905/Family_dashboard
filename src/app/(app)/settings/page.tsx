@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useAppStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -93,11 +94,14 @@ export default function SettingsPage() {
     loadData();
   }, [supabase, router]);
 
+  const resetApp = useAppStore((state) => state.resetApp);
+
   async function handleSignOut() {
     if (signingOut) return;
     setSigningOut(true);
     try {
       await supabase.auth.signOut();
+      resetApp();
       router.push("/login");
       router.refresh();
     } catch (err) {

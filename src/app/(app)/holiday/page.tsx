@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useAppStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -173,35 +174,67 @@ export default function NewHolidayPage() {
   const [newItemName, setNewItemName] = useState("");
   const [newItemCategory, setNewItemCategory] = useState("Clothing");
 
+  const { familyId: cachedFamilyId, currentUser: cachedUser, isInitialized, setAppInfo } = useAppStore();
+
   useEffect(() => {
     async function loadData() {
       setLoading(true);
       try {
-        const { data: userData } = await supabase.auth.getUser();
-        if (!userData.user) {
-          router.push("/login");
-          return;
-        }
-        setCurrentUser(userData.user);
+        let activeUser = cachedUser;
+        let activeFamilyId = cachedFamilyId;
 
-        // Get family ID
-        const { data: memberData } = await supabase
-          .from("family_members")
-          .select("family_id")
-          .eq("user_id", userData.user.id)
-          .maybeSingle();
+        if (!isInitialized) {
+          const { data: userData } = await supabase.auth.getUser();
+          if (!userData.user) {
+            router.push("/login");
+            return;
+          }
+          activeUser = userData.user;
+          setCurrentUser(userData.user);
 
-        if (!memberData) {
-          router.push("/onboarding");
-          return;
+          const { data: memberData } = await supabase
+            .from("family_members")
+            .select("family_id, role")
+            .eq("user_id", userData.user.id)
+            .maybeSingle();
+
+          if (!memberData) {
+            router.push("/onboarding");
+            return;
+          }
+          activeFamilyId = memberData.family_id;
+          setFamilyId(memberData.family_id);
+
+          const { data: membersData } = await supabase
+            .from("family_members")
+            .select("user_id, display_name, role")
+            .eq("family_id", memberData.family_id);
+
+          const { data: family } = await supabase
+            .from("families")
+            .select("name")
+            .eq("id", memberData.family_id)
+            .maybeSingle();
+
+          setAppInfo({
+            familyId: memberData.family_id,
+            familyMembers: membersData ?? [],
+            currentUser: userData.user,
+            memberRole: memberData.role,
+            familyName: family?.name ?? "Family"
+          });
+        } else {
+          setCurrentUser(cachedUser);
+          setFamilyId(cachedFamilyId);
         }
-        setFamilyId(memberData.family_id);
+
+        if (!activeFamilyId) return;
 
         // Fetch holiday plans
         const { data: plansData } = await supabase
           .from("holiday_plans")
           .select("*")
-          .eq("family_id", memberData.family_id);
+          .eq("family_id", activeFamilyId);
 
         if (plansData) {
           setPlans(plansData);
@@ -217,7 +250,7 @@ export default function NewHolidayPage() {
     }
 
     loadData();
-  }, [supabase, router]);
+  }, [supabase, router, cachedFamilyId, cachedUser, isInitialized, setAppInfo]);
 
   // Find active plan
   const activePlan = plans.find(p => p.id === activePlanId) || null;

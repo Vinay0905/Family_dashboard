@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useAppStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -177,35 +178,67 @@ export default function NewSubscriptionsPage() {
     }, 3000);
   };
 
+  const { familyId: cachedFamilyId, currentUser: cachedUser, isInitialized, setAppInfo } = useAppStore();
+
   useEffect(() => {
     async function loadData() {
       setLoading(true);
       try {
-        const { data: userData } = await supabase.auth.getUser();
-        if (!userData.user) {
-          router.push("/login");
-          return;
-        }
-        setCurrentUser(userData.user);
+        let activeUser = cachedUser;
+        let activeFamilyId = cachedFamilyId;
 
-        // Get family ID
-        const { data: memberData } = await supabase
-          .from("family_members")
-          .select("family_id")
-          .eq("user_id", userData.user.id)
-          .maybeSingle();
+        if (!isInitialized) {
+          const { data: userData } = await supabase.auth.getUser();
+          if (!userData.user) {
+            router.push("/login");
+            return;
+          }
+          activeUser = userData.user;
+          setCurrentUser(userData.user);
 
-        if (!memberData) {
-          router.push("/onboarding");
-          return;
+          const { data: memberData } = await supabase
+            .from("family_members")
+            .select("family_id, role")
+            .eq("user_id", userData.user.id)
+            .maybeSingle();
+
+          if (!memberData) {
+            router.push("/onboarding");
+            return;
+          }
+          activeFamilyId = memberData.family_id;
+          setFamilyId(memberData.family_id);
+
+          const { data: membersData } = await supabase
+            .from("family_members")
+            .select("user_id, display_name, role")
+            .eq("family_id", memberData.family_id);
+
+          const { data: family } = await supabase
+            .from("families")
+            .select("name")
+            .eq("id", memberData.family_id)
+            .maybeSingle();
+
+          setAppInfo({
+            familyId: memberData.family_id,
+            familyMembers: membersData ?? [],
+            currentUser: userData.user,
+            memberRole: memberData.role,
+            familyName: family?.name ?? "Family"
+          });
+        } else {
+          setCurrentUser(cachedUser);
+          setFamilyId(cachedFamilyId);
         }
-        setFamilyId(memberData.family_id);
+
+        if (!activeFamilyId) return;
 
         // Fetch subscriptions
         const { data: subsData } = await supabase
           .from("subscriptions")
           .select("*")
-          .eq("family_id", memberData.family_id);
+          .eq("family_id", activeFamilyId);
 
         if (subsData) {
           setSubscriptions(subsData);
@@ -218,7 +251,7 @@ export default function NewSubscriptionsPage() {
     }
 
     loadData();
-  }, [supabase, router]);
+  }, [supabase, router, cachedFamilyId, cachedUser, isInitialized, setAppInfo]);
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

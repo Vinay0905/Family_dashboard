@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useAppStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -156,6 +157,7 @@ export default function MaintenancePage() {
   const [nextDueDate, setNextDueDate] = useState("");
   const [vendor, setVendor] = useState("");
   const [notes, setNotes] = useState("");
+  const [serviceCost, setServiceCost] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Nurturing tip task log state
@@ -193,35 +195,67 @@ export default function MaintenancePage() {
     },
   ]);
 
+  const { familyId: cachedFamilyId, currentUser: cachedUser, isInitialized, setAppInfo } = useAppStore();
+
   useEffect(() => {
     async function loadData() {
       setLoading(true);
       try {
-        const { data: userData } = await supabase.auth.getUser();
-        if (!userData.user) {
-          router.push("/login");
-          return;
-        }
-        setCurrentUser(userData.user);
+        let activeUser = cachedUser;
+        let activeFamilyId = cachedFamilyId;
 
-        // Get family ID
-        const { data: memberData } = await supabase
-          .from("family_members")
-          .select("family_id")
-          .eq("user_id", userData.user.id)
-          .maybeSingle();
+        if (!isInitialized) {
+          const { data: userData } = await supabase.auth.getUser();
+          if (!userData.user) {
+            router.push("/login");
+            return;
+          }
+          activeUser = userData.user;
+          setCurrentUser(userData.user);
 
-        if (!memberData) {
-          router.push("/onboarding");
-          return;
+          const { data: memberData } = await supabase
+            .from("family_members")
+            .select("family_id, role")
+            .eq("user_id", userData.user.id)
+            .maybeSingle();
+
+          if (!memberData) {
+            router.push("/onboarding");
+            return;
+          }
+          activeFamilyId = memberData.family_id;
+          setFamilyId(memberData.family_id);
+
+          const { data: membersData } = await supabase
+            .from("family_members")
+            .select("user_id, display_name, role")
+            .eq("family_id", memberData.family_id);
+
+          const { data: family } = await supabase
+            .from("families")
+            .select("name")
+            .eq("id", memberData.family_id)
+            .maybeSingle();
+
+          setAppInfo({
+            familyId: memberData.family_id,
+            familyMembers: membersData ?? [],
+            currentUser: userData.user,
+            memberRole: memberData.role,
+            familyName: family?.name ?? "Family"
+          });
+        } else {
+          setCurrentUser(cachedUser);
+          setFamilyId(cachedFamilyId);
         }
-        setFamilyId(memberData.family_id);
+
+        if (!activeFamilyId) return;
 
         // Fetch maintenance assets
         const { data: assetsData } = await supabase
           .from("maintenance_assets")
           .select("*")
-          .eq("family_id", memberData.family_id);
+          .eq("family_id", activeFamilyId);
 
         if (assetsData) {
           setAssets(assetsData);
@@ -234,7 +268,7 @@ export default function MaintenancePage() {
     }
 
     loadData();
-  }, [supabase, router]);
+  }, [supabase, router, cachedFamilyId, cachedUser, isInitialized, setAppInfo]);
 
   const resetForm = () => {
     setCurrentAssetId(null);
@@ -243,6 +277,7 @@ export default function MaintenancePage() {
     setNextDueDate("");
     setVendor("");
     setNotes("");
+    setServiceCost("");
   };
 
   const handleOpenCreateModal = () => {
@@ -258,6 +293,7 @@ export default function MaintenancePage() {
     setNextDueDate(asset.next_due_date || "");
     setVendor(asset.vendor || "");
     setNotes(asset.notes || "");
+    setServiceCost("");
     setModalMode("edit");
     setShowModal(true);
   };
@@ -290,6 +326,19 @@ export default function MaintenancePage() {
 
       if (error) throw error;
 
+      // Auto-log cost to expenses if specified
+      if (serviceCost && Number(serviceCost) > 0) {
+        await supabase.from("expenses").insert({
+          family_id: familyId,
+          created_by: currentUser.id,
+          amount: Number(serviceCost),
+          category: "utilities",
+          paid_by: currentUser.id,
+          expense_date: lastServiceDate || new Date().toISOString().slice(0, 10),
+          description: `Auto-logged cost for registration of: ${name.trim()}`
+        });
+      }
+
       setAssets((prev) => [...prev, newAsset]);
 
       // Add to dynamic activity feed
@@ -314,7 +363,7 @@ export default function MaintenancePage() {
 
   const handleUpdateAsset = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentAssetId || !name.trim()) return;
+    if (!currentAssetId || !name.trim() || !familyId) return;
 
     setIsSubmitting(true);
     try {
@@ -332,6 +381,19 @@ export default function MaintenancePage() {
         .single();
 
       if (error) throw error;
+
+      // Auto-log cost to expenses if specified
+      if (serviceCost && Number(serviceCost) > 0) {
+        await supabase.from("expenses").insert({
+          family_id: familyId,
+          created_by: currentUser!.id,
+          amount: Number(serviceCost),
+          category: "utilities",
+          paid_by: currentUser!.id,
+          expense_date: lastServiceDate || new Date().toISOString().slice(0, 10),
+          description: `Auto-logged cost for service of: ${name.trim()}`
+        });
+      }
 
       setAssets((prev) =>
         prev.map((a) => (a.id === currentAssetId ? updatedAsset : a))
@@ -1220,6 +1282,24 @@ export default function MaintenancePage() {
                 onChange={(e) => setNotes(e.target.value)}
                 className="bg-surface-container-low border-outline-variant/40 rounded-xl focus:border-primary text-sm p-3 w-full outline-none focus:ring-1 focus:ring-primary"
               />
+            </div>
+
+            {/* Service Cost */}
+            <div className="space-y-1.5">
+              <Label htmlFor="serviceCost" className="text-xs font-bold uppercase tracking-wider text-primary">
+                Service Cost (Optional - Auto-logs to Expenses)
+              </Label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-2.5 text-xs text-on-surface-variant/65 font-bold">₹</span>
+                <Input
+                  id="serviceCost"
+                  type="number"
+                  placeholder="0.00"
+                  value={serviceCost}
+                  onChange={(e) => setServiceCost(e.target.value)}
+                  className="pl-7.5 bg-surface-container-low border-outline-variant/40 rounded-xl focus:border-primary text-sm p-3 w-full outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
             </div>
 
             {/* Submit Button */}
