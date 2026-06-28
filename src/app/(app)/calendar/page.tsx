@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useAppStore } from "@/lib/store";
 import {
   ChevronLeft,
   ChevronRight,
@@ -88,25 +89,57 @@ export default function CalendarPage() {
   const [formMsg, setFormMsg] = useState<string | null>(null);
 
   // ── Load data ─────────────────────────────────────────────────
+  const { familyId: cachedFamilyId, currentUser: cachedUser, isInitialized, setAppInfo } = useAppStore();
+
+  // ── Load data ─────────────────────────────────────────────────
   const loadData = useCallback(async () => {
     try {
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError || !userData.user) { router.push("/login"); return; }
+      let activeFamilyId = cachedFamilyId;
 
-      const { data: memberData, error: memberError } = await supabase
-        .from("family_members")
-        .select("family_id")
-        .eq("user_id", userData.user.id)
-        .maybeSingle();
+      if (!isInitialized) {
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (userError || !userData.user) { router.push("/login"); return; }
 
-      if (memberError || !memberData) { router.push("/onboarding"); return; }
+        const { data: memberData, error: memberError } = await supabase
+          .from("family_members")
+          .select("family_id, role")
+          .eq("user_id", userData.user.id)
+          .maybeSingle();
 
-      setFamilyId(memberData.family_id);
+        if (memberError || !memberData) { router.push("/onboarding"); return; }
+
+        activeFamilyId = memberData.family_id;
+        setFamilyId(memberData.family_id);
+
+        // Fetch family members list
+        const { data: membersData } = await supabase
+          .from("family_members")
+          .select("user_id, display_name, role")
+          .eq("family_id", memberData.family_id);
+
+        const { data: family } = await supabase
+          .from("families")
+          .select("name")
+          .eq("id", memberData.family_id)
+          .maybeSingle();
+
+        setAppInfo({
+          familyId: memberData.family_id,
+          familyMembers: membersData ?? [],
+          currentUser: userData.user,
+          memberRole: memberData.role,
+          familyName: family?.name ?? "Family"
+        });
+      } else {
+        setFamilyId(cachedFamilyId);
+      }
+
+      if (!activeFamilyId) return;
 
       const { data: eventsData } = await supabase
         .from("events")
         .select("*")
-        .eq("family_id", memberData.family_id)
+        .eq("family_id", activeFamilyId)
         .order("start_at", { ascending: true });
 
       setEvents(eventsData ?? []);
@@ -115,7 +148,7 @@ export default function CalendarPage() {
     } finally {
       setLoading(false);
     }
-  }, [supabase, router]);
+  }, [supabase, router, cachedFamilyId, cachedUser, isInitialized, setAppInfo]);
 
   useEffect(() => { loadData(); }, [loadData]);
 

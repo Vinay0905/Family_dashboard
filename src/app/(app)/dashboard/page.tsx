@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { useAppStore } from "@/lib/store";
 import {
   ArrowRight,
   CheckSquare,
@@ -125,20 +126,66 @@ export default function NewDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<DashboardData | null>(null);
 
+  const { familyId: cachedFamilyId, familyMembers: cachedMembers, currentUser: cachedUser, memberRole: cachedRole, familyName: cachedFamilyName, isInitialized, setAppInfo } = useAppStore();
+
   const loadDashboard = useCallback(async () => {
     try {
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError || !userData.user) { router.push("/login"); return; }
+      let activeUser = cachedUser;
+      let activeFamilyId = cachedFamilyId;
+      let activeRole = cachedRole;
+      let activeMembers = cachedMembers;
+      let activeFamilyName = cachedFamilyName;
+      let displayName = "";
 
-      const { data: member } = await supabase
-        .from("family_members")
-        .select("family_id, display_name, families(name)")
-        .eq("user_id", userData.user.id)
-        .maybeSingle();
+      if (!isInitialized) {
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (userError || !userData.user) { router.push("/login"); return; }
+        activeUser = userData.user;
 
-      if (!member) { router.push("/onboarding"); return; }
+        const { data: member } = await supabase
+          .from("family_members")
+          .select("family_id, display_name, role, families(name)")
+          .eq("user_id", userData.user.id)
+          .maybeSingle();
 
-      const familyId = member.family_id;
+        if (!member) { router.push("/onboarding"); return; }
+
+        activeFamilyId = member.family_id;
+        displayName = member.display_name ?? userData.user.email ?? "there";
+        activeRole = member.role;
+
+        const familiesData = member.families as { name: string } | { name: string }[] | null;
+        activeFamilyName = Array.isArray(familiesData)
+          ? familiesData[0]?.name ?? "Family"
+          : familiesData?.name ?? "Family";
+
+        // Fetch family members list
+        const { data: membersData } = await supabase
+          .from("family_members")
+          .select("user_id, display_name, role")
+          .eq("family_id", member.family_id);
+
+        activeMembers = membersData ?? [];
+
+        setAppInfo({
+          familyId: activeFamilyId,
+          familyMembers: activeMembers,
+          currentUser: activeUser,
+          memberRole: activeRole,
+          familyName: activeFamilyName
+        });
+      } else {
+        activeUser = cachedUser;
+        activeFamilyId = cachedFamilyId;
+        activeRole = cachedRole;
+        activeMembers = cachedMembers;
+        activeFamilyName = cachedFamilyName;
+
+        const currentMember = activeMembers.find(m => m.user_id === activeUser?.id);
+        displayName = currentMember?.display_name ?? activeUser?.email ?? "there";
+      }
+
+      if (!activeFamilyId) return;
       const today = new Date().toISOString().slice(0, 10);
 
       const sevenDaysAgo = new Date();
@@ -150,13 +197,13 @@ export default function NewDashboardPage() {
 
       const [eventsRes, tasksRes, shoppingRes, expenseMonthRes, expenseLast7Res, upcomingEventsRes, recentTasksRes] =
         await Promise.all([
-          supabase.from("events").select("id", { count: "exact", head: true }).eq("family_id", familyId).gte("start_at", `${today}T00:00:00`).lte("start_at", `${today}T23:59:59`),
-          supabase.from("tasks").select("id", { count: "exact", head: true }).eq("family_id", familyId).neq("status", "completed"),
-          supabase.from("shopping_items").select("id", { count: "exact", head: true }).eq("family_id", familyId).eq("is_purchased", false),
-          supabase.from("expenses").select("amount").eq("family_id", familyId).gte("expense_date", monthFrom).lte("expense_date", monthTo),
-          supabase.from("expenses").select("amount, expense_date").eq("family_id", familyId).gte("expense_date", sevenDaysAgoStr).lte("expense_date", today).order("expense_date", { ascending: true }),
-          supabase.from("events").select("id, title, start_at, category").eq("family_id", familyId).gte("start_at", `${today}T00:00:00`).order("start_at", { ascending: true }).limit(5),
-          supabase.from("tasks").select("id, title, status, due_date").eq("family_id", familyId).neq("status", "completed").order("due_date", { ascending: true, nullsFirst: false }).limit(5),
+          supabase.from("events").select("id", { count: "exact", head: true }).eq("family_id", activeFamilyId).gte("start_at", `${today}T00:00:00`).lte("start_at", `${today}T23:59:59`),
+          supabase.from("tasks").select("id", { count: "exact", head: true }).eq("family_id", activeFamilyId).neq("status", "completed"),
+          supabase.from("shopping_items").select("id", { count: "exact", head: true }).eq("family_id", activeFamilyId).eq("is_purchased", false),
+          supabase.from("expenses").select("amount").eq("family_id", activeFamilyId).gte("expense_date", monthFrom).lte("expense_date", monthTo),
+          supabase.from("expenses").select("amount, expense_date").eq("family_id", activeFamilyId).gte("expense_date", sevenDaysAgoStr).lte("expense_date", today).order("expense_date", { ascending: true }),
+          supabase.from("events").select("id, title, start_at, category").eq("family_id", activeFamilyId).gte("start_at", `${today}T00:00:00`).order("start_at", { ascending: true }).limit(5),
+          supabase.from("tasks").select("id, title, status, due_date").eq("family_id", activeFamilyId).neq("status", "completed").order("due_date", { ascending: true, nullsFirst: false }).limit(5),
         ]);
 
       const dayMap: Record<string, number> = {};
@@ -170,14 +217,9 @@ export default function NewDashboardPage() {
         if (dayMap[key] !== undefined) dayMap[key] += Number(e.amount);
       });
 
-      const familiesData = member.families as { name: string } | { name: string }[] | null;
-      const familyName = Array.isArray(familiesData)
-        ? familiesData[0]?.name ?? "Family"
-        : familiesData?.name ?? "Family";
-
       setData({
-        displayName: member.display_name ?? "there",
-        familyName,
+        displayName,
+        familyName: activeFamilyName,
         todayEvents: eventsRes.count ?? 0,
         openTasks: tasksRes.count ?? 0,
         shoppingItems: shoppingRes.count ?? 0,
@@ -191,7 +233,7 @@ export default function NewDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [supabase, router]);
+  }, [supabase, router, cachedFamilyId, cachedMembers, cachedUser, cachedRole, cachedFamilyName, isInitialized, setAppInfo]);
 
   useEffect(() => { loadDashboard(); }, [loadDashboard]);
 

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useAppStore } from "@/lib/store";
 import {
   Bell,
   Clock,
@@ -40,29 +41,58 @@ export default function NewRemindersPage() {
   const [category, setCategory] = useState<"bill" | "birthday" | "anniversary" | "renewal" | "maintenance" | "travel" | "other">("bill");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const { familyId: cachedFamilyId, currentUser: cachedUser, isInitialized, setAppInfo } = useAppStore();
+
   const loadReminders = useCallback(async () => {
     try {
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError || !userData.user) {
-        router.push("/login");
-        return;
+      let activeFamilyId = cachedFamilyId;
+
+      if (!isInitialized) {
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (userError || !userData.user) {
+          router.push("/login");
+          return;
+        }
+
+        const { data: member } = await supabase
+          .from("family_members")
+          .select("family_id, role")
+          .eq("user_id", userData.user.id)
+          .maybeSingle();
+
+        if (!member) {
+          router.push("/onboarding");
+          return;
+        }
+        activeFamilyId = member.family_id;
+
+        // Fetch family members list
+        const { data: membersData } = await supabase
+          .from("family_members")
+          .select("user_id, display_name, role")
+          .eq("family_id", member.family_id);
+
+        const { data: family } = await supabase
+          .from("families")
+          .select("name")
+          .eq("id", member.family_id)
+          .maybeSingle();
+
+        setAppInfo({
+          familyId: member.family_id,
+          familyMembers: membersData ?? [],
+          currentUser: userData.user,
+          memberRole: member.role,
+          familyName: family?.name ?? "Family"
+        });
       }
 
-      const { data: member } = await supabase
-        .from("family_members")
-        .select("family_id")
-        .eq("user_id", userData.user.id)
-        .maybeSingle();
-
-      if (!member) {
-        router.push("/onboarding");
-        return;
-      }
+      if (!activeFamilyId) return;
 
       const { data } = await supabase
         .from("reminders")
         .select("id, title, remind_at, category, is_acknowledged")
-        .eq("family_id", member.family_id)
+        .eq("family_id", activeFamilyId)
         .order("remind_at", { ascending: true });
 
       setReminders(data ?? []);
@@ -71,7 +101,7 @@ export default function NewRemindersPage() {
     } finally {
       setLoading(false);
     }
-  }, [supabase, router]);
+  }, [supabase, router, cachedFamilyId, cachedUser, isInitialized, setAppInfo]);
 
   useEffect(() => {
     loadReminders();

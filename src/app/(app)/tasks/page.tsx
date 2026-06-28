@@ -101,11 +101,18 @@ export default function TasksPage() {
             setFamilyMembers(membersData);
           }
 
+          const { data: family } = await supabase
+            .from("families")
+            .select("name")
+            .eq("id", memberData.family_id)
+            .maybeSingle();
+
           setAppInfo({
             familyId: activeFamilyId,
             familyMembers: activeMembers,
             currentUser: activeUser,
-            memberRole: activeRole
+            memberRole: activeRole,
+            familyName: family?.name ?? "Family"
           });
         } else {
           setCurrentUser(cachedUser);

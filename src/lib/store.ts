@@ -5,8 +5,9 @@ interface AppState {
   familyMembers: any[];
   currentUser: any | null;
   memberRole: string;
+  familyName: string;
   isInitialized: boolean;
-  setAppInfo: (info: { familyId: string; familyMembers: any[]; currentUser: any; memberRole: string }) => void;
+  setAppInfo: (info: { familyId: string; familyMembers: any[]; currentUser: any; memberRole: string; familyName: string }) => void;
   resetApp: () => void;
 }
 
@@ -15,7 +16,8 @@ export const useAppStore = create<AppState>((set) => ({
   familyMembers: [],
   currentUser: null,
   memberRole: "member",
+  familyName: "Family",
   isInitialized: false,
   setAppInfo: (info) => set({ ...info, isInitialized: true }),
-  resetApp: () => set({ familyId: null, familyMembers: [], currentUser: null, memberRole: "member", isInitialized: false }),
+  resetApp: () => set({ familyId: null, familyMembers: [], currentUser: null, memberRole: "member", familyName: "Family", isInitialized: false }),
 }));

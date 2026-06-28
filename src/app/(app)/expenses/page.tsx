@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useAppStore } from "@/lib/store";
 import {
   ShoppingCart,
   Lightbulb,
@@ -158,52 +159,91 @@ function ExpensesPageContent() {
     setMounted(true);
   }, []);
 
+  const { familyId: cachedFamilyId, familyMembers: cachedMembers, currentUser: cachedUser, memberRole: cachedRole, isInitialized, setAppInfo } = useAppStore();
+
   useEffect(() => {
     async function loadData() {
       setLoading(true);
       try {
-        const { data: userData } = await supabase.auth.getUser();
-        if (!userData.user) {
-          router.push("/login");
-          return;
+        let activeUser = cachedUser;
+        let activeFamilyId = cachedFamilyId;
+        let activeRole = cachedRole;
+        let activeMembers = cachedMembers;
+
+        if (!isInitialized) {
+          const { data: userData } = await supabase.auth.getUser();
+          if (!userData.user) {
+            router.push("/login");
+            return;
+          }
+          activeUser = userData.user;
+          setCurrentUser(userData.user);
+
+          // Get family membership
+          const { data: memberData } = await supabase
+            .from("family_members")
+            .select("family_id, role")
+            .eq("user_id", userData.user.id)
+            .maybeSingle();
+
+          if (!memberData) {
+            router.push("/onboarding");
+            return;
+          }
+          activeFamilyId = memberData.family_id;
+          activeRole = memberData.role;
+          setFamilyId(memberData.family_id);
+          setMemberRole(memberData.role);
+
+          // Fetch family details (budget)
+          const { data: familyData } = await supabase
+            .from("families")
+            .select("*" as any)
+            .eq("id", memberData.family_id)
+            .single() as any;
+
+          if (familyData) {
+            setMonthlyBudget(Number(familyData.monthly_budget) || 0);
+            setTempBudget(String(familyData.monthly_budget || 0));
+          }
+
+          // Fetch family members
+          const { data: membersData } = await supabase
+            .from("family_members")
+            .select("user_id, display_name, role")
+            .eq("family_id", memberData.family_id);
+
+          if (membersData) {
+            activeMembers = membersData;
+            setFamilyMembers(membersData);
+          }
+
+          setAppInfo({
+            familyId: activeFamilyId,
+            familyMembers: activeMembers,
+            currentUser: activeUser,
+            memberRole: activeRole,
+            familyName: familyData?.name ?? "Family"
+          });
+        } else {
+          setCurrentUser(cachedUser);
+          setFamilyId(cachedFamilyId);
+          setMemberRole(cachedRole);
+          setFamilyMembers(cachedMembers);
+
+          const { data: familyData } = await supabase
+            .from("families")
+            .select("monthly_budget" as any)
+            .eq("id", cachedFamilyId!)
+            .maybeSingle() as any;
+
+          if (familyData) {
+            setMonthlyBudget(Number(familyData.monthly_budget) || 0);
+            setTempBudget(String(familyData.monthly_budget || 0));
+          }
         }
-        setCurrentUser(userData.user);
 
-        // Get family membership
-        const { data: memberData } = await supabase
-          .from("family_members")
-          .select("family_id, role")
-          .eq("user_id", userData.user.id)
-          .maybeSingle();
-
-        if (!memberData) {
-          router.push("/onboarding");
-          return;
-        }
-        setFamilyId(memberData.family_id);
-        setMemberRole(memberData.role);
-
-        // Fetch family details (budget)
-        const { data: familyData } = await supabase
-          .from("families")
-          .select("*" as any)
-          .eq("id", memberData.family_id)
-          .single() as any;
-
-        if (familyData) {
-          setMonthlyBudget(Number(familyData.monthly_budget) || 0);
-          setTempBudget(String(familyData.monthly_budget || 0));
-        }
-
-        // Fetch family members
-        const { data: membersData } = await supabase
-          .from("family_members")
-          .select("user_id, display_name, role")
-          .eq("family_id", memberData.family_id);
-
-        if (membersData) {
-          setFamilyMembers(membersData);
-        }
+        if (!activeFamilyId) return;
 
         // Fetch expenses for selected month
         const fromDate = new Date(currentYear, currentMonth - 1, 1).toISOString().slice(0, 10);
@@ -212,7 +252,7 @@ function ExpensesPageContent() {
         const { data: expensesData } = await supabase
           .from("expenses")
           .select("*")
-          .eq("family_id", memberData.family_id)
+          .eq("family_id", activeFamilyId)
           .gte("expense_date", fromDate)
           .lte("expense_date", toDate);
 
@@ -226,8 +266,10 @@ function ExpensesPageContent() {
       }
     }
 
-    loadData();
-  }, [supabase, router, currentYear, currentMonth]);
+    if (mounted) {
+      loadData();
+    }
+  }, [supabase, router, currentMonth, currentYear, mounted, cachedFamilyId, cachedMembers, cachedUser, cachedRole, isInitialized, setAppInfo]);
 
   const handleUpdateBudget = async () => {
     if (!familyId || isNaN(Number(tempBudget))) return;

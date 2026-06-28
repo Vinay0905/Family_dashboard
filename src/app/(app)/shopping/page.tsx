@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useAppStore } from "@/lib/store";
 import { Input } from "@/components/ui/input";
 import {
   ShoppingCart,
@@ -67,28 +68,61 @@ export default function NewShoppingPage() {
   // Success Toast state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  const { familyId: cachedFamilyId, currentUser: cachedUser, isInitialized, setAppInfo } = useAppStore();
+
   // Load Initial Data
   useEffect(() => {
     async function loadData() {
       try {
-        const { data: userData } = await supabase.auth.getUser();
-        if (!userData.user) return;
-        setUser(userData.user);
+        let activeUser = cachedUser;
+        let activeFamilyId = cachedFamilyId;
 
-        const { data: memberData } = await supabase
-          .from("family_members")
-          .select("family_id")
-          .eq("user_id", userData.user.id)
-          .maybeSingle();
+        if (!isInitialized) {
+          const { data: userData } = await supabase.auth.getUser();
+          if (!userData.user) return;
+          activeUser = userData.user;
+          setUser(userData.user);
 
-        if (!memberData) return;
-        setMember(memberData);
+          const { data: memberData } = await supabase
+            .from("family_members")
+            .select("family_id, role")
+            .eq("user_id", userData.user.id)
+            .maybeSingle();
+
+          if (!memberData) return;
+          activeFamilyId = memberData.family_id;
+          setMember(memberData);
+
+          const { data: membersData } = await supabase
+            .from("family_members")
+            .select("user_id, display_name, role")
+            .eq("family_id", memberData.family_id);
+
+          const { data: family } = await supabase
+            .from("families")
+            .select("name")
+            .eq("id", memberData.family_id)
+            .maybeSingle();
+
+          setAppInfo({
+            familyId: memberData.family_id,
+            familyMembers: membersData ?? [],
+            currentUser: userData.user,
+            memberRole: memberData.role,
+            familyName: family?.name ?? "Family"
+          });
+        } else {
+          setUser(cachedUser);
+          setMember({ family_id: cachedFamilyId });
+        }
+
+        if (!activeFamilyId) return;
 
         // Fetch lists
         const { data: listsData } = await supabase
           .from("shopping_lists")
           .select("*, shopping_items(*)")
-          .eq("family_id", memberData.family_id)
+          .eq("family_id", activeFamilyId)
           .order("created_at");
 
         if (listsData) {
@@ -103,9 +137,8 @@ export default function NewShoppingPage() {
         setLoading(false);
       }
     }
-
     loadData();
-  }, [supabase]);
+  }, [supabase, cachedFamilyId, cachedUser, isInitialized, setAppInfo]);
 
   // Request/Release WakeLock for Store Mode
   useEffect(() => {
