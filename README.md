@@ -1,5 +1,9 @@
 # 🏡 FamAssist (Family Organizer)
 
+<p align="center">
+  <img src="pictures/dashboard.png" width="900" alt="FamAssist Dashboard" style="border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 8px 30px rgba(0,0,0,0.12);"/>
+</p>
+
 [![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js)](https://nextjs.org)
 [![Supabase](https://img.shields.io/badge/Supabase-Database%20%26%20Auth-blueviolet?style=for-the-badge&logo=supabase)](https://supabase.com)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind--blue?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com)
@@ -10,19 +14,44 @@
 
 ---
 
-## 🌟 Modules & Features
+## 🌟 Modules & Feature Showcase
 
-| Module | Description | Screenshots / Previews |
-| :--- | :--- | :--- |
-| **📊 Dashboard** | An interactive command center displaying today's schedule, chores breakdown, grocery counts, monthly expenses, and active reminders. | *[Insert Dashboard Screenshot]* |
-| **🧹 Task & Chore Tracker** | Create chores, set priorities (Low, Medium, High), assign them to family members, and track status (`Open`, `In Progress`, `Completed`). | *[Insert Chores Screenshot]* |
-| **📅 Shared Calendar** | A color-coded calendar categorized by School, Travel, Family, Birthdays, and Medical appointments to keep everyone in sync. | *[Insert Calendar Screenshot]* |
-| **🛒 Smart Shopping** | Create shopping lists, add items with quantities and categories, and check them off in real-time. | *[Insert Shopping Screenshot]* |
-| **💳 Expenses & Budgets** | Log monthly expenditures, view spending analytics by category, and track family spending against a shared monthly budget. | *[Insert Expenses Screenshot]* |
-| **🔔 Subscriptions Monitor** | Monitor active services (Netflix, Spotify, Gym, etc.), track costs, and display upcoming renewal dates. | *[Insert Subscriptions Screenshot]* |
-| **✈️ Holiday Planner** | Plan upcoming trips with custom itineraries, budget estimations, and collaborative packing checklists. | *[Insert Holiday Screenshot]* |
-| **🔧 Maintenance Tracker** | Keep home systems (AC, Water Filter, Vehicles) running smoothly. Log service costs, record last service dates, and track next due dates. | *[Insert Maintenance Screenshot]* |
-| **📁 Document Vault** | Securely store and catalog links to important files (identity proofs, bills, insurance policies). | *[Insert Documents Screenshot]* |
+### 📊 Dashboard
+An interactive command center displaying today's schedule, chores breakdown, shopping lists, monthly expenses, and active reminders. Fits into a sleek Bento grid with responsive cards.
+<p align="left">
+  <img src="pictures/dashboard.png" width="700" alt="Dashboard" style="border-radius: 10px; border: 1px solid #e1e4e8;"/>
+</p>
+
+### 🧹 Task & Chore Tracker
+Create chores, set priorities (Low, Medium, High), assign them to family members, and track status (`Open`, `In Progress`, `Completed`) dynamically.
+<p align="left">
+  <img src="pictures/tasks.png" width="700" alt="Tasks" style="border-radius: 10px; border: 1px solid #e1e4e8;"/>
+</p>
+
+### 🛒 Smart Shopping
+Create shopping lists, add items with quantities and categories, and check them off in real-time. Includes progress tracking and one-click cleanup of bought items.
+<p align="left">
+  <img src="pictures/shopping.png" width="700" alt="Shopping" style="border-radius: 10px; border: 1px solid #e1e4e8;"/>
+</p>
+
+### 💳 Expenses & Budget Analytics
+Log monthly expenditures, view spending analytics by category, and track family spending against a shared monthly budget with responsive progress meters.
+<p align="left">
+  <img src="pictures/expenses.png" width="450" alt="Expenses" style="border-radius: 10px; border: 1px solid #e1e4e8; display: inline-block; margin-right: 10px;"/>
+  <img src="pictures/budget_1.png" width="450" alt="Budget" style="border-radius: 10px; border: 1px solid #e1e4e8; display: inline-block;"/>
+</p>
+
+### 🔔 Subscriptions Monitor
+Monitor active services (Netflix, Spotify, Amazon Prime, etc.), track billing cycles, costs, and display upcoming renewal dates automatically.
+<p align="left">
+  <img src="pictures/subscriptiosn.png" width="700" alt="Subscriptions" style="border-radius: 10px; border: 1px solid #e1e4e8;"/>
+</p>
+
+### 🔧 Home Asset Maintenance
+Keep home systems (AC, Water Filter, Vehicles) running smoothly. Log service costs, record last service dates, track next due dates, and auto-log service fees directly to family expenses.
+<p align="left">
+  <img src="pictures/maintence.png" width="700" alt="Maintenance" style="border-radius: 10px; border: 1px solid #e1e4e8;"/>
+</p>
 
 ---
 
@@ -83,16 +112,16 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 Log in using any of the following accounts to see the pre-populated dashboard:
 
 * **Father / Family Admin**: 
-  * **Email**: `john.doe@example.com`
+  * **Email**: `nagavinay0905@gmail.com`
   * **Password**: `password123`
 * **Mother / Family Member**:
-  * **Email**: `jane.doe@example.com`
+  * **Email**: `nagavinay.avvaru@gmail.com`
   * **Password**: `password123`
 * **Child / Family Child**:
-  * **Email**: `jimmy.doe@example.com`
+  * **Email**: `kingler2510@gmail.com`
   * **Password**: `password123`
 
 ---
 
 > [!TIP]
-> Log in as **John Doe** to access admin settings (like adding members or changing the family name). Log in as **Jimmy Doe** to view the app through a child's chore list!
+> Log in as **John Doe** (`nagavinay0905@gmail.com`) to access admin settings (like adding members or changing the family name). Log in as **Jimmy Doe** (`kingler2510@gmail.com`) to view the app through a child's chore list!
