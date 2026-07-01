@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="theme-warmth-order bg-background text-on-background min-h-screen">
+      <body className="bg-background text-foreground min-h-screen">
         <QueryProvider>{children}</QueryProvider>
         <SpeedInsights />
       </body>
