@@ -422,7 +422,7 @@ export default function NewShoppingPage() {
       {!storeMode && (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="font-heading text-3xl font-extrabold text-on-surface tracking-tight">
+            <h1 className="font-serif text-3xl font-extrabold text-on-surface tracking-tight">
               Shopping <span className="text-primary italic">Lists</span>
             </h1>
             <p className="text-xs text-on-surface-variant font-medium mt-1">
@@ -444,16 +444,16 @@ export default function NewShoppingPage() {
 
       {/* ─── STORE MODE BANNER ───────────────────────────────── */}
       {storeMode && (
-        <div className="rounded-2xl bg-primary p-5 text-white shadow-xl flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-300">
+        <div className="rounded-2xl bg-primary p-5 text-primary-foreground shadow-xl flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-300">
           <div>
-            <span className="text-[10px] uppercase font-bold tracking-widest bg-white/20 px-3 py-1 rounded-full">
+            <span className="text-[10px] uppercase font-bold tracking-widest bg-primary-foreground/20 px-3 py-1 rounded-full">
               Store Mode (Screen Kept Awake)
             </span>
-            <h2 className="font-heading text-2xl font-extrabold mt-2">{selectedList?.name}</h2>
+            <h2 className="font-serif text-2xl font-extrabold mt-2">{selectedList?.name}</h2>
           </div>
           <button
             onClick={() => setStoreMode(false)}
-            className="text-primary bg-white hover:bg-surface font-sans text-xs font-bold uppercase tracking-wider py-2 px-5 rounded-2xl active:scale-95 transition-all cursor-pointer shadow-md"
+            className="text-primary bg-primary-foreground hover:opacity-90 font-sans text-xs font-bold uppercase tracking-wider py-2 px-5 rounded-2xl active:scale-95 transition-all cursor-pointer shadow-md"
           >
             Exit Mode
           </button>
@@ -481,7 +481,7 @@ export default function NewShoppingPage() {
                   <span>{l.name}</span>
                   {pendingCount > 0 && (
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                      isSelected ? "bg-white/25 text-white" : "bg-primary/10 text-primary"
+                      isSelected ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/10 text-primary"
                     }`}>
                       {pendingCount}
                     </span>
@@ -535,7 +535,7 @@ export default function NewShoppingPage() {
         {/* DESKTOP LISTS SIDEBAR */}
         {!storeMode && (
           <aside className="hidden md:flex md:col-span-4 flex-col gap-4">
-            <div className="rounded-2xl bg-surface-container-low border border-outline-variant/30 p-5 flex flex-col gap-4">
+            <div className="rounded-2xl glass-card p-5 flex flex-col gap-4">
               <div className="flex items-center justify-between px-1">
                 <h3 className="text-[10px] font-bold uppercase tracking-wider text-primary">
                   Family Lists
@@ -556,7 +556,7 @@ export default function NewShoppingPage() {
                         key={l.id}
                         className={`w-full text-left p-3.5 rounded-xl transition-all duration-200 group flex items-start justify-between cursor-pointer border ${
                           isSelected
-                            ? "bg-surface-container-lowest border-primary/45 shadow-sm"
+                            ? "bg-surface-container-lowest border-primary/45 shadow-xs"
                             : "border-transparent hover:bg-surface-container-high"
                         }`}
                         onClick={() => setSelectedListId(l.id)}
@@ -658,13 +658,13 @@ export default function NewShoppingPage() {
               
               {/* Detailed List Header Info */}
               {!storeMode && (
-                <div className="bg-surface-container-low border border-outline-variant/30 rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 shadow-sm">
+                <div className="glass-card rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                   <div>
                     <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider mb-1">
                       <ShoppingBag className="h-4 w-4" />
                       <span>Grocery List</span>
                     </div>
-                    <h2 className="font-heading text-xl font-bold text-on-surface">{selectedList?.name}</h2>
+                    <h2 className="font-serif text-xl font-bold text-on-surface">{selectedList?.name}</h2>
                     <p className="text-[11px] text-on-surface-variant mt-0.5">
                       Coordinate with family members • {totalItems} items total
                     </p>
@@ -693,14 +693,14 @@ export default function NewShoppingPage() {
                 <div className="bg-tertiary-container text-on-tertiary-container p-5 rounded-2xl flex flex-col justify-between h-28 relative overflow-hidden shadow-sm">
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Remaining</p>
-                    <p className="font-heading text-2xl font-extrabold mt-1">{remainingItems} Items</p>
+                    <p className="font-serif text-2xl font-extrabold mt-1">{remainingItems} Items</p>
                   </div>
                   <ShoppingBag className="absolute -right-2 -bottom-2 h-20 w-20 opacity-10 pointer-events-none" />
                 </div>
                 <div className="bg-secondary-container text-on-secondary-container p-5 rounded-2xl flex flex-col justify-between h-28 relative overflow-hidden shadow-sm">
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Bought</p>
-                    <p className="font-heading text-2xl font-extrabold mt-1">
+                    <p className="font-serif text-2xl font-extrabold mt-1">
                       {completedItems} / {totalItems}
                     </p>
                   </div>
@@ -710,7 +710,7 @@ export default function NewShoppingPage() {
 
               {/* Add Item form */}
               {!storeMode && (
-                <div className="rounded-2xl bg-surface-container-lowest border border-outline-variant/30 p-5 shadow-sm">
+                <div className="rounded-2xl glass-card p-5">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-primary mb-3">Add Item</h3>
                   <form onSubmit={handleAddItem} className="space-y-4">
                     <div className="flex flex-col lg:flex-row gap-4 items-end">
@@ -780,7 +780,7 @@ export default function NewShoppingPage() {
 
               {/* Table search & sort toolbar */}
               {!storeMode && (
-                <section className="bg-surface-container-low border border-outline-variant/30 rounded-2xl p-3 shadow-sm flex flex-col sm:flex-row gap-3 items-center justify-between">
+                <section className="glass-card rounded-2xl p-3 flex flex-col sm:flex-row gap-3 items-center justify-between">
                   <div className="relative w-full sm:max-w-xs">
                     <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-on-surface-variant/60" />
                     <Input
@@ -847,7 +847,7 @@ export default function NewShoppingPage() {
                             <div 
                               key={item.id} 
                               onClick={() => handleToggleItem(item.id, item.is_purchased)}
-                              className={`bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-4 flex items-center justify-between gap-4 group hover:bg-surface-container-low transition-all duration-200 cursor-pointer active:scale-[0.995] ${
+                              className={`glass-card border border-outline-variant/15 rounded-2xl p-4 flex items-center justify-between gap-4 group hover:bg-surface-container-low transition-all duration-200 cursor-pointer active:scale-[0.995] ${
                                 item.is_purchased ? "opacity-60" : ""
                               }`}
                             >
@@ -858,11 +858,11 @@ export default function NewShoppingPage() {
                                     type="checkbox"
                                     checked={item.is_purchased}
                                     onChange={() => handleToggleItem(item.id, item.is_purchased)}
-                                    className={`peer rounded-lg border-2 border-outline-variant text-primary focus:ring-primary bg-white cursor-pointer transition-all ${
+                                    className={`peer rounded-lg border-2 border-outline-variant text-primary focus:ring-primary bg-surface-container-low cursor-pointer transition-all ${
                                       storeMode ? "h-7 w-7" : "h-5.5 w-5.5"
                                     }`}
                                   />
-                                  <Check className={`absolute text-primary pointer-events-none scale-0 peer-checked:scale-100 transition-transform duration-200 ${
+                                  <Check className={`absolute text-primary-foreground pointer-events-none scale-0 peer-checked:scale-100 transition-transform duration-200 ${
                                     storeMode ? "h-5 w-5" : "h-3.5 w-3.5"
                                   }`} />
                                 </div>

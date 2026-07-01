@@ -12,7 +12,7 @@ export function EventForm({ action }: { action: (formData: FormData) => Promise<
         <input 
           name="title" 
           type="text"
-          className="w-full rounded border border-outline-variant bg-white px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none transition-colors" 
+          className="w-full rounded border border-outline-variant bg-surface-container-low px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none transition-colors" 
           placeholder="e.g. Dentist Appointment" 
           required 
         />
@@ -23,7 +23,7 @@ export function EventForm({ action }: { action: (formData: FormData) => Promise<
         <input 
           name="start_at" 
           type="datetime-local" 
-          className="w-full rounded border border-outline-variant bg-white px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none transition-colors" 
+          className="w-full rounded border border-outline-variant bg-surface-container-low px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none transition-colors" 
           required 
         />
       </div>
@@ -32,7 +32,7 @@ export function EventForm({ action }: { action: (formData: FormData) => Promise<
         <label className="text-[10px] font-bold uppercase tracking-wider text-primary">Category</label>
         <select 
           name="category" 
-          className="w-full rounded border border-outline-variant bg-white px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none transition-colors" 
+          className="w-full rounded border border-outline-variant bg-surface-container-low px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none transition-colors" 
           defaultValue="family"
         >
           <option value="family">Family</option>

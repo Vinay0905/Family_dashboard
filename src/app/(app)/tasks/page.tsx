@@ -23,6 +23,8 @@ import {
   AlertCircle
 } from "lucide-react";
 
+import { FamilyAvatars } from "@/components/ui/family-avatars";
+
 export default function TasksPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -250,8 +252,8 @@ export default function TasksPage() {
     }
     return {
       label: "Upcoming",
-      color: "bg-slate-500/10 text-slate-400 border-slate-500/20",
-      dotColor: "bg-slate-400"
+      color: "bg-muted text-muted-foreground border-border",
+      dotColor: "bg-muted-foreground"
     };
   };
 
@@ -344,7 +346,7 @@ export default function TasksPage() {
       {/* ─── HEADER & STATISTICS ───────────────────────────────── */}
       <section className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h2 className="font-quicksand text-3xl font-extrabold text-primary tracking-tight">
+          <h2 className="font-serif text-3xl font-extrabold text-primary tracking-tight">
             Family Chores Board
           </h2>
           <p className="text-sm text-on-surface-variant mt-1.5 font-medium">
@@ -371,14 +373,14 @@ export default function TasksPage() {
       </section>
 
       {/* ─── FILTERS & SORT CONTROLS ───────────────────────────── */}
-      <section className="glass-card rounded-2xl p-4 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between bg-surface-container-lowest border border-outline-variant/30">
+      <section className="glass-card rounded-2xl p-4 flex flex-col md:flex-row gap-3 items-center justify-between">
         <div className="relative w-full md:max-w-xs">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-on-surface-variant/60" />
           <Input
             placeholder="Search tasks..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-surface-container-low border-outline-variant/30 text-xs h-9 rounded-xl focus:ring-1 focus:ring-primary w-full"
+            className="pl-9 bg-surface-container-low border border-outline-variant/10 text-xs h-9 rounded-xl focus:ring-1 focus:ring-primary w-full"
           />
         </div>
 
@@ -472,11 +474,11 @@ export default function TasksPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
         
         {/* OPEN COLUMN */}
-        <div className={`flex flex-col gap-4 bg-surface-container-low/40 p-4 rounded-2xl border border-outline-variant/15 ${activeTab === "open" ? "flex" : "hidden md:flex"}`}>
+        <div className={`flex flex-col gap-4 glass-card p-4 rounded-2xl border border-outline-variant/10 ${activeTab === "open" ? "flex" : "hidden md:flex"}`}>
           <div className="flex items-center justify-between px-1 mb-1">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-primary" />
-              <h3 className="font-quicksand text-base font-bold text-on-surface">Open</h3>
+              <h3 className="font-serif text-base font-bold text-on-surface">Open</h3>
               <span className="bg-surface-container-high px-2 py-0.5 rounded-full text-[10px] font-bold text-on-surface-variant">
                 {openTasks.length}
               </span>
@@ -495,11 +497,11 @@ export default function TasksPage() {
         </div>
 
         {/* IN PROGRESS COLUMN */}
-        <div className={`flex flex-col gap-4 bg-surface-container-low/40 p-4 rounded-2xl border border-outline-variant/15 ${activeTab === "in_progress" ? "flex" : "hidden md:flex"}`}>
+        <div className={`flex flex-col gap-4 glass-card p-4 rounded-2xl border border-outline-variant/10 ${activeTab === "in_progress" ? "flex" : "hidden md:flex"}`}>
           <div className="flex items-center justify-between px-1 mb-1">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-secondary-container" />
-              <h3 className="font-quicksand text-base font-bold text-on-surface">In Progress</h3>
+              <h3 className="font-serif text-base font-bold text-on-surface">In Progress</h3>
               <span className="bg-surface-container-high px-2 py-0.5 rounded-full text-[10px] font-bold text-on-surface-variant">
                 {inProgressTasks.length}
               </span>
@@ -518,11 +520,11 @@ export default function TasksPage() {
         </div>
 
         {/* COMPLETED COLUMN */}
-        <div className={`flex flex-col gap-4 bg-surface-container-low/40 p-4 rounded-2xl border border-outline-variant/15 ${activeTab === "completed" ? "flex" : "hidden md:flex"}`}>
+        <div className={`flex flex-col gap-4 glass-card p-4 rounded-2xl border border-outline-variant/10 ${activeTab === "completed" ? "flex" : "hidden md:flex"}`}>
           <div className="flex items-center justify-between px-1 mb-1">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-tertiary-container" />
-              <h3 className="font-quicksand text-base font-bold text-on-surface">Completed</h3>
+              <h3 className="font-serif text-base font-bold text-on-surface">Completed</h3>
               <span className="bg-surface-container-high px-2 py-0.5 rounded-full text-[10px] font-bold text-on-surface-variant">
                 {completedTasks.length}
               </span>
@@ -545,7 +547,7 @@ export default function TasksPage() {
       {/* ─── FLOATING ACTION BUTTON ────────────────────────────── */}
       <button
         onClick={() => setShowCreateModal(true)}
-        className="fixed bottom-24 right-6 md:bottom-8 md:right-8 w-14 h-14 bg-secondary text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-40 group cursor-pointer border-none"
+        className="fixed bottom-24 right-6 md:bottom-8 md:right-8 w-14 h-14 bg-secondary text-secondary-foreground rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-40 group cursor-pointer border-none"
         title="Add Family Chore"
       >
         <Plus className="h-6 w-6 group-hover:rotate-90 transition-transform duration-300" />
@@ -564,7 +566,7 @@ export default function TasksPage() {
             className="relative z-10 w-full max-w-lg bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150"
           >
             <div className="flex items-center justify-between pb-3 border-b border-outline-variant/20">
-              <h3 className="font-quicksand text-lg font-bold text-primary flex items-center gap-2">
+              <h3 className="font-serif text-lg font-bold text-primary flex items-center gap-2">
                 <Clock className="h-5 w-5 text-primary" />
                 Add Family Chore
               </h3>
@@ -649,7 +651,7 @@ export default function TasksPage() {
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full mt-2 bg-primary hover:bg-primary-container text-white py-3 rounded-xl active:scale-[0.98] transition-all shadow-md font-sans text-xs font-bold uppercase tracking-widest cursor-pointer border-none h-11"
+              className="w-full mt-2 bg-primary hover:opacity-90 text-primary-foreground py-3 rounded-xl active:scale-[0.98] transition-all shadow-md font-sans text-xs font-bold uppercase tracking-widest cursor-pointer border-none h-11"
             >
               {isSubmitting ? "Creating Chore..." : "Create Chore"}
             </Button>
@@ -669,14 +671,16 @@ export default function TasksPage() {
     return (
       <div
         key={task.id}
-        className={`bg-surface-container-lowest p-5 rounded-2xl border hover:border-primary/30 shadow-xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 cursor-pointer group flex flex-col justify-between relative ${
+        className={`glass-card p-5 rounded-2xl border hover:border-primary/30 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 cursor-pointer group flex flex-col justify-between relative ${
+          task.status === "in_progress" ? "neon-glow-active" : "shadow-xs hover:shadow-md"
+        } ${
           task.status === "completed"
             ? "opacity-75 grayscale-[0.2]"
             : task.priority === "high"
-            ? "border-l-4 border-l-secondary border-outline-variant/20"
+            ? "border-l-4 border-l-secondary"
             : task.priority === "medium"
-            ? "border-l-4 border-l-secondary-container border-outline-variant/20"
-            : "border-l-4 border-l-outline-variant border-outline-variant/20"
+            ? "border-l-4 border-l-secondary-container"
+            : "border-l-4 border-l-outline-variant"
         }`}
       >
         {/* Card Header (Priority Tag, Done / Overdue Indicators) */}
@@ -715,7 +719,7 @@ export default function TasksPage() {
 
         {/* Title and Description */}
         <div className="mb-4">
-          <h4 className={`font-quicksand text-base font-bold text-on-surface leading-snug mb-1 group-hover:text-primary transition-colors ${
+          <h4 className={`font-serif text-base font-bold text-on-surface leading-snug mb-1 group-hover:text-primary transition-colors ${
             task.status === "completed" ? "line-through text-on-surface-variant/60" : ""
           }`}>
             {task.title}
@@ -752,12 +756,7 @@ export default function TasksPage() {
 
           <div className="flex items-center gap-2">
             {assignee ? (
-              <div 
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold border ${getAvatarColor(assignee.display_name || "")}`}
-                title={`${assignee.display_name} (${assignee.role})`}
-              >
-                {getInitials(assignee.display_name || "")}
-              </div>
+              <FamilyAvatars names={[assignee.display_name || ""]} size="sm" />
             ) : (
               <span className="text-[10px] text-on-surface-variant/50 italic font-semibold font-sans">
                 Household
@@ -776,7 +775,7 @@ export default function TasksPage() {
                     e.stopPropagation();
                     handleUpdateStatus(task.id, "in_progress");
                   }}
-                  className="flex items-center gap-1 py-1 px-2.5 bg-secondary/10 hover:bg-secondary text-secondary hover:text-white border-none text-[9px] font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer active:scale-95"
+                  className="flex items-center gap-1 py-1 px-2.5 bg-secondary/10 hover:bg-secondary text-secondary hover:text-secondary-foreground border-none text-[9px] font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer active:scale-95"
                   title="Start Task"
                 >
                   <Play className="h-2.5 w-2.5" /> Start
@@ -798,7 +797,7 @@ export default function TasksPage() {
                   e.stopPropagation();
                   handleUpdateStatus(task.id, "completed");
                 }}
-                className="flex items-center gap-1 py-1 px-2.5 bg-primary/10 hover:bg-primary text-primary hover:text-white border-none text-[9px] font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer active:scale-95"
+                className="flex items-center gap-1 py-1 px-2.5 bg-primary/10 hover:bg-primary text-primary hover:text-primary-foreground border-none text-[9px] font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer active:scale-95"
                 title="Complete Task"
               >
                 <CheckCircle2 className="h-2.5 w-2.5" /> Complete

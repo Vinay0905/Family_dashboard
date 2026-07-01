@@ -35,7 +35,7 @@ export function TaskList({ tasks, updateStatusAction }: TaskListProps) {
   const renderTaskCard = (task: Task) => (
     <div 
       key={task.id} 
-      className="bg-surface-container-lowest border border-outline/10 p-5 rounded hover:shadow-[0_0_25px_rgba(183,0,79,0.05)] hover:border-primary transition-all duration-300 group flex flex-col gap-3"
+      className="bg-surface-container-lowest border border-border/50 p-5 rounded hover:shadow-md hover:shadow-primary/5 hover:border-primary transition-all duration-300 group flex flex-col gap-3"
     >
       <div className="flex justify-between items-start">
         <span className={`text-[9px] font-bold tracking-wider px-2.5 py-0.5 rounded border uppercase ${getPriorityStyle(task.priority)}`}>
@@ -54,7 +54,7 @@ export function TaskList({ tasks, updateStatusAction }: TaskListProps) {
         )}
       </div>
 
-      <div className="flex flex-col gap-3 pt-3 border-t border-outline/5 mt-auto">
+      <div className="flex flex-col gap-3 pt-3 border-t border-border/30 mt-auto">
         <div className="flex justify-between items-center text-[10px] text-on-surface-variant font-semibold">
           {task.due_date ? (
             <div className="flex items-center gap-1">
@@ -75,7 +75,7 @@ export function TaskList({ tasks, updateStatusAction }: TaskListProps) {
                 <input type="hidden" name="status" value="in_progress" />
                 <button 
                   type="submit" 
-                  className="w-full flex items-center justify-center gap-1 py-1.5 px-2 bg-secondary/10 hover:bg-secondary text-secondary hover:text-white border border-secondary/20 hover:border-transparent text-[10px] font-bold uppercase tracking-wider rounded transition-all cursor-pointer"
+                  className="w-full flex items-center justify-center gap-1 py-1.5 px-2 bg-secondary/10 hover:bg-secondary text-secondary hover:text-secondary-foreground border border-secondary/20 hover:border-transparent text-[10px] font-bold uppercase tracking-wider rounded transition-all cursor-pointer"
                 >
                   <Play className="h-2.5 w-2.5" /> Start
                 </button>
@@ -85,7 +85,7 @@ export function TaskList({ tasks, updateStatusAction }: TaskListProps) {
                 <input type="hidden" name="status" value="completed" />
                 <button 
                   type="submit" 
-                  className="w-full flex items-center justify-center gap-1 py-1.5 px-2 bg-primary/10 hover:bg-primary text-primary hover:text-white border border-primary/20 hover:border-transparent text-[10px] font-bold uppercase tracking-wider rounded transition-all cursor-pointer"
+                  className="w-full flex items-center justify-center gap-1 py-1.5 px-2 bg-primary/10 hover:bg-primary text-primary hover:text-primary-foreground border border-primary/20 hover:border-transparent text-[10px] font-bold uppercase tracking-wider rounded transition-all cursor-pointer"
                 >
                   <CheckCircle2 className="h-2.5 w-2.5" /> Complete
                 </button>
@@ -99,7 +99,7 @@ export function TaskList({ tasks, updateStatusAction }: TaskListProps) {
               <input type="hidden" name="status" value="completed" />
               <button 
                 type="submit" 
-                className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 bg-primary text-white hover:brightness-110 text-[10px] font-bold uppercase tracking-wider rounded transition-all cursor-pointer shadow-[0_0_10px_rgba(183,0,79,0.15)]"
+                className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 bg-primary text-primary-foreground hover:opacity-90 text-[10px] font-bold uppercase tracking-wider rounded transition-all cursor-pointer shadow-sm hover:shadow-md"
               >
                 <CheckCircle2 className="h-2.5 w-2.5" /> Mark Completed
               </button>
@@ -112,7 +112,7 @@ export function TaskList({ tasks, updateStatusAction }: TaskListProps) {
               <input type="hidden" name="status" value="open" />
               <button 
                 type="submit" 
-                className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 bg-on-surface-variant/10 hover:bg-on-surface-variant text-on-surface-variant hover:text-white border border-outline/10 hover:border-transparent text-[10px] font-bold uppercase tracking-wider rounded transition-all cursor-pointer"
+                className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 bg-on-surface-variant/10 hover:bg-on-surface-variant text-on-surface-variant hover:text-background border border-border/25 hover:border-transparent text-[10px] font-bold uppercase tracking-wider rounded transition-all cursor-pointer"
               >
                 <RotateCcw className="h-2.5 w-2.5" /> Reopen Task
               </button>
@@ -149,7 +149,7 @@ export function TaskList({ tasks, updateStatusAction }: TaskListProps) {
       <div className="flex flex-col gap-5">
         <div className="flex items-center justify-between px-2 py-1 border-b border-secondary/20">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-secondary-container shadow-[0_0_10px_#00eefc]" />
+            <span className="w-2.5 h-2.5 rounded-full bg-secondary" />
             <h3 className="font-heading text-xs font-extrabold uppercase tracking-widest text-secondary">In Progress</h3>
           </div>
           <span className="font-sans text-[11px] font-bold bg-secondary/10 text-secondary px-2.5 py-0.5 rounded-full">

@@ -37,12 +37,12 @@ const MONTHS = [
 
 const CAT_COLORS: Record<string, { bg: string; text: string; dot: string; border: string }> = {
   family:   { bg: "bg-primary/10", text: "text-primary", dot: "bg-primary", border: "border-primary/20" },
-  school:   { bg: "bg-purple-600/10", text: "text-purple-700", dot: "bg-purple-600", border: "border-purple-200" },
-  work:     { bg: "bg-blue-600/10", text: "text-blue-700", dot: "bg-blue-600", border: "border-blue-200" },
-  travel:   { bg: "bg-amber-600/10", text: "text-amber-700", dot: "bg-amber-600", border: "border-amber-200" },
-  medical:  { bg: "bg-rose-600/10", text: "text-rose-700", dot: "bg-rose-600", border: "border-rose-200" },
-  birthday: { bg: "bg-emerald-600/10", text: "text-emerald-700", dot: "bg-emerald-600", border: "border-emerald-200" },
-  other:    { bg: "bg-slate-600/10", text: "text-slate-700", dot: "bg-slate-500", border: "border-slate-200" },
+  school:   { bg: "bg-purple-600/10 dark:bg-purple-400/15", text: "text-purple-700 dark:text-purple-300", dot: "bg-purple-600 dark:bg-purple-400", border: "border-purple-200 dark:border-purple-900/30" },
+  work:     { bg: "bg-blue-600/10 dark:bg-blue-400/15", text: "text-blue-700 dark:text-blue-300", dot: "bg-blue-600 dark:bg-blue-400", border: "border-blue-200 dark:border-blue-900/30" },
+  travel:   { bg: "bg-amber-600/10 dark:bg-amber-400/15", text: "text-amber-700 dark:text-amber-300", dot: "bg-amber-600 dark:bg-amber-400", border: "border-amber-200 dark:border-amber-900/30" },
+  medical:  { bg: "bg-rose-600/10 dark:bg-rose-400/15", text: "text-rose-700 dark:text-rose-300", dot: "bg-rose-600 dark:bg-rose-400", border: "border-rose-200 dark:border-rose-900/30" },
+  birthday: { bg: "bg-emerald-600/10 dark:bg-emerald-400/15", text: "text-emerald-700 dark:text-emerald-300", dot: "bg-emerald-600 dark:bg-emerald-400", border: "border-emerald-200 dark:border-emerald-900/30" },
+  other:    { bg: "bg-slate-600/10 dark:bg-slate-400/15", text: "text-slate-700 dark:text-slate-300", dot: "bg-slate-500 dark:bg-slate-400", border: "border-slate-200 dark:border-slate-800/30" },
 };
 
 const CAT_OPTIONS = ["family", "school", "work", "travel", "birthday", "medical", "other"];
@@ -327,7 +327,7 @@ export default function CalendarPage() {
         {/* Day-of-week headers */}
         <div className="grid grid-cols-7 border-b border-outline-variant/20 shrink-0 bg-surface-container-low/20">
           {DAYS_SHORT.map((d) => (
-            <div key={d} className="py-2 text-center text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/60 border-r last:border-r-0 border-outline-variant/10">
+            <div key={d} className="py-2 text-center text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/80 border-r last:border-r-0 border-outline-variant/10">
               {d}
             </div>
           ))}
@@ -348,14 +348,14 @@ export default function CalendarPage() {
                 onClick={() => isCurrentMonth && setSelectedDate(date)}
                 className={`p-2 flex flex-col cursor-pointer transition-all duration-150 min-h-[95px] md:min-h-[115px] relative overflow-hidden group select-none
                   ${!isCurrentMonth ? "bg-surface-container-low/30 opacity-40 cursor-default" : ""}
-                  ${isCurrentMonth && isSelected ? "bg-primary/5 ring-1 ring-inset ring-primary/20" : isCurrentMonth ? "hover:bg-surface-container-low/30" : ""}
+                  ${isCurrentMonth && isSelected ? "bg-primary/5 ring-2 ring-primary/50 neon-glow" : isCurrentMonth ? "hover:bg-surface-container-low/30" : ""}
                   ${isCurrentMonth && isWeekend && !isSelected ? "bg-surface-container-low/10" : ""}
                 `}
               >
                 {/* Day number label */}
                 <span
                   className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full mb-1 shrink-0 transition-all
-                    ${todayDay ? "bg-primary text-on-primary shadow-xs" : isSelected && isCurrentMonth ? "text-primary font-extrabold" : "text-on-surface/80"}
+                    ${todayDay ? "bg-primary text-on-primary shadow-xs neon-glow" : isSelected && isCurrentMonth ? "text-primary font-extrabold" : "text-on-surface/80"}
                   `}
                 >
                   {date.getDate()}
@@ -409,7 +409,7 @@ export default function CalendarPage() {
       <div className="flex flex-col h-full bg-surface-container-lowest">
         <div className="flex justify-between items-center px-6 py-4 border-b border-outline-variant/20 shrink-0">
           <div>
-            <h2 className="font-quicksand font-bold text-lg md:text-xl text-primary leading-tight">
+            <h2 className="font-serif font-bold text-lg md:text-xl text-primary leading-tight">
               {currentDate.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
             </h2>
             <p className="text-[11px] text-on-surface-variant font-semibold">
@@ -470,7 +470,7 @@ export default function CalendarPage() {
                           </div>
                           <button
                             onClick={() => handleDeleteEvent(evt.id)}
-                            className="p-1 rounded-full text-on-surface-variant/40 hover:text-rose-600 hover:bg-rose-50/50 active:scale-95 transition-all cursor-pointer"
+                            className="p-1 rounded-full text-on-surface-variant/40 hover:text-destructive hover:bg-destructive/10 active:scale-95 transition-all cursor-pointer"
                             title="Delete"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -494,7 +494,7 @@ export default function CalendarPage() {
     return (
       <div className="flex flex-col h-full bg-surface-container-lowest">
         <div className="flex justify-between items-center px-6 py-4 border-b border-outline-variant/20 shrink-0">
-          <h2 className="font-quicksand font-bold text-xl text-primary">{year}</h2>
+          <h2 className="font-serif font-bold text-xl text-primary">{year}</h2>
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => navigate(-1)}
@@ -587,10 +587,10 @@ export default function CalendarPage() {
         {/* Selected date header */}
         <div className="flex items-center justify-between pb-3 border-b border-outline-variant/20">
           <div>
-            <h3 className="font-quicksand font-bold text-sm text-on-surface">{selLabel}</h3>
+            <h3 className="font-serif font-bold text-sm text-on-surface">{selLabel}</h3>
             <p className="text-[10px] text-on-surface-variant/70 font-semibold mt-0.5">Selected Date</p>
           </div>
-          <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${dayEvts.length > 0 ? "bg-primary/10 text-primary border-primary/20" : "bg-surface-container text-on-surface-variant border-outline-variant/10"}`}>
+          <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${dayEvts.length > 0 ? "bg-primary/10 text-primary border-primary/20 neon-glow" : "bg-surface-container text-on-surface-variant border-outline-variant/10"}`}>
             {dayEvts.length} event{dayEvts.length !== 1 ? "s" : ""}
           </span>
         </div>
@@ -649,7 +649,7 @@ export default function CalendarPage() {
 
                   <button
                     onClick={() => handleDeleteEvent(evt.id)}
-                    className="opacity-0 group-hover:opacity-100 p-1.5 rounded-full hover:bg-rose-50/50 hover:text-rose-500 text-on-surface-variant/40 transition-all shrink-0 cursor-pointer"
+                    className="opacity-0 group-hover:opacity-100 p-1.5 rounded-full hover:bg-destructive/10 hover:text-destructive text-on-surface-variant/40 transition-all shrink-0 cursor-pointer"
                     title="Delete"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -685,11 +685,11 @@ export default function CalendarPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* ── Page Header ────────────────────────────────────── */}
-      <section className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/30 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden shadow-sm">
+      <section className="glass-card p-6 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-gradient-to-br from-primary/5 via-secondary/5 to-transparent blur-3xl pointer-events-none" />
         
         <div className="relative z-10 space-y-1">
-          <h1 className="font-quicksand text-3xl font-extrabold text-on-surface tracking-tight">
+          <h1 className="font-serif text-3xl font-extrabold text-on-surface tracking-tight">
             Family <span className="text-primary italic">Calendar</span>
           </h1>
           <p className="text-xs md:text-sm text-on-surface-variant font-medium">
@@ -727,7 +727,7 @@ export default function CalendarPage() {
                 onClick={() => setViewMode(mode)}
                 className={`rounded-full px-4 py-1.5 text-[10px] font-bold capitalize transition-all duration-200 active:scale-95 cursor-pointer ${
                   viewMode === mode
-                    ? "bg-primary text-on-primary shadow-xs"
+                    ? "bg-primary text-on-primary shadow-xs ring-1 ring-primary/50"
                     : "text-on-surface-variant hover:text-primary"
                 }`}
               >
@@ -774,8 +774,8 @@ export default function CalendarPage() {
           {/* Modal Box */}
           <div className="relative bg-surface-container-lowest w-full max-w-md rounded-2xl border border-outline-variant/30 shadow-xl overflow-hidden transform transition-all animate-in zoom-in-95 duration-200">
             {/* Header */}
-            <div className="px-5 py-4 border-b border-outline-variant/20 flex justify-between items-center bg-primary-container/10">
-              <h3 className="font-quicksand font-bold text-base text-primary">Create New Event</h3>
+            <div className="px-5 py-4 border-b border-outline-variant/20 flex justify-between items-center bg-primary/10">
+              <h3 className="font-serif font-bold text-base text-primary">Create New Event</h3>
               <button
                 className="text-on-surface-variant/60 hover:text-on-surface hover:bg-surface-container p-1 rounded-full transition-all"
                 onClick={() => setIsModalOpen(false)}
@@ -879,7 +879,7 @@ export default function CalendarPage() {
               </div>
 
               {formMsg && (
-                <p className={`text-[10px] font-bold px-3 py-1.5 rounded-xl border ${formMsg.includes("Failed") ? "bg-rose-500/10 text-rose-700 border-rose-500/20" : "bg-emerald-500/10 text-emerald-700 border-emerald-500/20"}`}>
+                <p className={`text-[10px] font-bold px-3 py-1.5 rounded-xl border ${formMsg.includes("Failed") ? "bg-rose-500/10 dark:bg-rose-400/15 text-rose-700 dark:text-rose-300 border-rose-500/20 dark:border-rose-900/30" : "bg-emerald-500/10 dark:bg-emerald-400/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/20 dark:border-emerald-900/30"}`}>
                   {formMsg}
                 </p>
               )}

@@ -46,56 +46,56 @@ const CATEGORY_MAP: Record<
     color: "text-tertiary",
     badgeClass: "bg-tertiary-fixed text-on-tertiary-fixed border-tertiary-fixed-dim/30",
     icon: ShoppingCart,
-    fill: "#2a6747"
+    fill: "var(--success)"
   },
   utilities: {
     label: "Utilities",
     color: "text-secondary",
     badgeClass: "bg-secondary-fixed text-on-secondary-fixed border-secondary-fixed-dim/30",
     icon: Lightbulb,
-    fill: "#a53b29"
+    fill: "var(--secondary)"
   },
   education: {
     label: "Education",
-    color: "text-indigo-700",
-    badgeClass: "bg-indigo-100 text-indigo-800 border-indigo-200/50",
+    color: "text-indigo-650 dark:text-indigo-400",
+    badgeClass: "bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/30",
     icon: GraduationCap,
-    fill: "#6366f1"
+    fill: "var(--education)"
   },
   fuel: {
     label: "Fuel",
-    color: "text-amber-700",
-    badgeClass: "bg-amber-100 text-amber-800 border-amber-200/50",
+    color: "text-amber-700 dark:text-warning",
+    badgeClass: "bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-warning border border-amber-200/50 dark:border-amber-800/30",
     icon: Car,
-    fill: "#f97316"
+    fill: "var(--fuel)"
   },
   entertainment: {
     label: "Entertainment",
-    color: "text-pink-700",
-    badgeClass: "bg-pink-100 text-pink-800 border-pink-200/50",
+    color: "text-pink-600 dark:text-pink-400",
+    badgeClass: "bg-pink-50 dark:bg-pink-950/30 text-pink-700 dark:text-pink-300 border border-pink-200/50 dark:border-pink-800/30",
     icon: Tv,
-    fill: "#ec4899"
+    fill: "var(--entertainment)"
   },
   medical: {
     label: "Medical",
     color: "text-error",
-    badgeClass: "bg-error-container text-on-error-container border-error/10",
+    badgeClass: "bg-error-container text-on-error-container border border-error/15",
     icon: HeartPulse,
-    fill: "#ba1a1a"
+    fill: "var(--error)"
   },
   travel: {
     label: "Travel",
     color: "text-primary",
     badgeClass: "bg-primary-fixed text-on-primary-fixed border-primary-fixed-dim/30",
     icon: Plane,
-    fill: "#005da7"
+    fill: "var(--primary)"
   },
   miscellaneous: {
     label: "Miscellaneous",
     color: "text-on-surface-variant",
     badgeClass: "bg-surface-container text-on-surface-variant border-outline-variant/30",
     icon: DollarSign,
-    fill: "#717783"
+    fill: "var(--on-surface-variant)"
   },
 };
 
@@ -497,7 +497,7 @@ function ExpensesPageContent() {
       {/* ─── HEADER & MONTH SELECTOR ───────────────────────── */}
       <section className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-outline-variant/20 pb-4 select-none">
         <div>
-          <h1 className="font-quicksand text-3xl font-bold tracking-tight text-on-background md:text-4xl">
+          <h1 className="font-serif text-3xl font-bold tracking-tight text-on-background md:text-4xl">
             Expenses <span className="text-primary italic">Tracker</span>
           </h1>
           <p className="text-sm text-on-surface-variant/80 font-sans mt-1">
@@ -540,13 +540,13 @@ function ExpensesPageContent() {
       {/* ─── BUDGET PLANS AND SUMMARY STATS ───────────────── */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Card: Month to Date Total */}
-        <div className="lg:col-span-2 bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col justify-between h-44 relative overflow-hidden group">
+        <div className="lg:col-span-2 glass-card rounded-2xl p-6 flex flex-col justify-between h-44 relative overflow-hidden group">
           <div className="absolute -right-8 -bottom-8 w-40 h-40 bg-primary/5 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-700"></div>
           <div className="absolute right-12 top-4 w-12 h-12 bg-primary/5 rounded-full border border-primary/10"></div>
           
           <div className="relative z-10">
             <p className="text-xs font-bold text-on-surface-variant/75 uppercase tracking-wider">Month-to-Date Spending</p>
-            <h3 className="font-quicksand text-4xl md:text-5xl font-bold text-primary mt-2">
+            <h3 className="font-serif text-4xl md:text-5xl font-bold text-primary mt-2">
               ₹{totalSpend.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
             </h3>
           </div>
@@ -561,7 +561,7 @@ function ExpensesPageContent() {
         </div>
 
         {/* Card: Budget Planning */}
-        <div className="lg:col-span-1 bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col justify-between h-44">
+        <div className="lg:col-span-1 glass-card rounded-2xl p-6 flex flex-col justify-between h-44">
           <div className="flex justify-between items-start w-full">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
@@ -598,7 +598,7 @@ function ExpensesPageContent() {
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5">
-                  <span className="font-quicksand text-lg font-bold text-on-surface">
+                  <span className="font-serif text-lg font-bold text-on-surface">
                     ₹{monthlyBudget.toLocaleString("en-IN")}
                   </span>
                   {memberRole === "admin" && (
@@ -644,8 +644,8 @@ function ExpensesPageContent() {
       {mounted && totalSpend > 0 && (
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Card: Pie Chart Breakdown */}
-          <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col justify-between h-[320px]">
-            <h4 className="font-quicksand font-bold text-sm text-primary flex items-center gap-1.5 uppercase tracking-wider">
+          <div className="glass-card rounded-2xl p-6 flex flex-col justify-between h-[320px]">
+            <h4 className="font-serif font-bold text-sm text-primary flex items-center gap-1.5 uppercase tracking-wider">
               <TrendingUp className="h-4 w-4 text-primary" /> Category Distribution
             </h4>
             <div className="flex-grow min-h-0 relative flex items-center justify-between gap-4 mt-2">
@@ -683,8 +683,8 @@ function ExpensesPageContent() {
           </div>
 
           {/* Card: Bar Chart Trend */}
-          <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col justify-between h-[320px]">
-            <h4 className="font-quicksand font-bold text-sm text-primary uppercase tracking-wider">
+          <div className="glass-card rounded-2xl p-6 flex flex-col justify-between h-[320px]">
+            <h4 className="font-serif font-bold text-sm text-primary uppercase tracking-wider">
               Daily Spending Trend
             </h4>
             <div className="w-full h-full pb-4 pt-4">
@@ -693,7 +693,7 @@ function ExpensesPageContent() {
                   <XAxis dataKey="day" tick={{ fontSize: 9, fill: "#717783", fontWeight: "600" }} stroke="#c1c7d3" />
                   <YAxis tick={{ fontSize: 9, fill: "#717783", fontWeight: "600" }} stroke="#c1c7d3" tickFormatter={(value: number | string) => `₹${value}`} />
                   <Tooltip formatter={(value) => `₹${Number(value).toLocaleString("en-IN")}`} />
-                  <Bar dataKey="spend" fill="#005da7" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="spend" fill="var(--primary)" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -704,8 +704,8 @@ function ExpensesPageContent() {
       {/* ─── BALANCES SPLIT AND SETTLEMENT WIDGETS ───────── */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Ledger Balance Split */}
-        <div className="lg:col-span-2 bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-4">
-          <h4 className="font-quicksand font-bold text-sm text-primary uppercase tracking-wider">
+        <div className="lg:col-span-2 glass-card rounded-2xl p-6 space-y-4">
+          <h4 className="font-serif font-bold text-sm text-primary uppercase tracking-wider">
             Ledger Balance Split
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -744,8 +744,8 @@ function ExpensesPageContent() {
         </div>
 
         {/* Recommended Settlements */}
-        <div className="lg:col-span-1 bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-4">
-          <h4 className="font-quicksand font-bold text-sm text-primary uppercase tracking-wider">
+        <div className="lg:col-span-1 glass-card rounded-2xl p-6 space-y-4">
+          <h4 className="font-serif font-bold text-sm text-primary uppercase tracking-wider">
             Settlement Pathways
           </h4>
           {settlements.length === 0 ? (
@@ -773,7 +773,7 @@ function ExpensesPageContent() {
       {/* ─── FILTERS & TRANSACTION TABLE ─────────────────── */}
       <section className="space-y-4">
         {/* Filters Panel */}
-        <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col md:flex-row gap-4 items-center justify-between select-none">
+        <div className="glass-card rounded-2xl p-4 flex flex-col md:flex-row gap-4 items-center justify-between select-none">
           <div className="relative w-full md:max-w-xs">
             <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-on-surface-variant/50" />
             <input
@@ -810,7 +810,7 @@ function ExpensesPageContent() {
         </div>
 
         {/* Expenses List & Table */}
-        <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden">
+        <div className="glass-card rounded-2xl overflow-hidden">
           {/* Desktop Table View */}
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
@@ -981,14 +981,15 @@ function ExpensesPageContent() {
             className="relative z-10 w-full max-w-md bg-surface border border-outline-variant/30 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
           >
             {/* Modal Header */}
-            <div className="p-5 bg-primary text-on-primary flex justify-between items-center select-none">
-              <h3 className="font-quicksand text-lg font-bold flex items-center gap-2">
-                <Wallet className="h-5 w-5" /> Log Expense
+            <div className="flex items-center justify-between pb-3 border-b border-outline-variant/20 p-5">
+              <h3 className="font-serif text-lg font-bold flex items-center gap-2">
+                <Wallet className="h-5 w-5 text-primary" />
+                Log Shared Purchase
               </h3>
               <button
                 type="button"
                 onClick={() => setShowLogModal(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-on-primary/80 hover:bg-white/10 hover:text-on-primary transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant/75 hover:bg-surface-container hover:text-on-surface transition-colors cursor-pointer"
               >
                 <X className="h-5 w-5" />
               </button>

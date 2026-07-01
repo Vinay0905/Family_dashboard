@@ -47,65 +47,65 @@ const CATEGORY_MAP: Record<
 > = {
   aadhar: {
     label: "Aadhar Card",
-    color: "text-rose-600 dark:text-rose-400",
-    bg: "bg-rose-50 dark:bg-rose-950/20",
-    border: "border-rose-500/20",
+    color: "text-rose-700 dark:text-rose-400",
+    bg: "bg-rose-100/60 dark:bg-rose-950/20",
+    border: "border-rose-200 dark:border-rose-900/30",
     icon: FileText
   },
   passport: {
     label: "Passport",
-    color: "text-blue-600 dark:text-blue-400",
-    bg: "bg-blue-50 dark:bg-blue-950/20",
-    border: "border-blue-500/20",
+    color: "text-blue-700 dark:text-blue-400",
+    bg: "bg-blue-100/60 dark:bg-blue-950/20",
+    border: "border-blue-200 dark:border-blue-900/30",
     icon: Compass
   },
   license: {
     label: "Driving License",
-    color: "text-amber-600 dark:text-amber-400",
-    bg: "bg-amber-50 dark:bg-amber-950/20",
-    border: "border-amber-500/20",
+    color: "text-amber-850 dark:text-warning",
+    bg: "bg-amber-100/60 dark:bg-amber-950/20",
+    border: "border-amber-200 dark:border-amber-900/30",
     icon: FileBadge
   },
   education: {
     label: "Education Related",
-    color: "text-emerald-600 dark:text-emerald-400",
-    bg: "bg-emerald-50 dark:bg-emerald-950/20",
-    border: "border-emerald-500/20",
+    color: "text-emerald-700 dark:text-emerald-400",
+    bg: "bg-emerald-100/60 dark:bg-emerald-950/20",
+    border: "border-emerald-200 dark:border-emerald-900/30",
     icon: GraduationCap
   },
   warranty: {
     label: "Warranty Card",
-    color: "text-purple-600 dark:text-purple-400",
-    bg: "bg-purple-50 dark:bg-purple-950/20",
-    border: "border-purple-500/20",
+    color: "text-purple-700 dark:text-purple-400",
+    bg: "bg-purple-100/60 dark:bg-purple-950/20",
+    border: "border-purple-200 dark:border-purple-900/30",
     icon: ShieldCheck
   },
   manual: {
     label: "User Manual",
-    color: "text-orange-600 dark:text-orange-400",
-    bg: "bg-orange-50 dark:bg-orange-950/20",
-    border: "border-orange-500/20",
+    color: "text-orange-700 dark:text-orange-400",
+    bg: "bg-orange-100/60 dark:bg-orange-950/20",
+    border: "border-orange-200 dark:border-orange-900/30",
     icon: HelpCircle
   },
   travel: {
     label: "Travel Booking",
-    color: "text-sky-600 dark:text-sky-400",
-    bg: "bg-sky-50 dark:bg-sky-950/20",
-    border: "border-sky-500/20",
+    color: "text-sky-750 dark:text-sky-400",
+    bg: "bg-sky-100/60 dark:bg-sky-950/20",
+    border: "border-sky-200 dark:border-sky-900/30",
     icon: Compass
   },
   school: {
     label: "School Form",
-    color: "text-indigo-600 dark:text-indigo-400",
-    bg: "bg-indigo-50 dark:bg-indigo-950/20",
-    border: "border-indigo-500/20",
+    color: "text-indigo-755 dark:text-indigo-400",
+    bg: "bg-indigo-100/60 dark:bg-indigo-950/20",
+    border: "border-indigo-200 dark:border-indigo-900/30",
     icon: GraduationCap
   },
   other: {
     label: "Other / General",
-    color: "text-slate-600 dark:text-slate-400",
-    bg: "bg-slate-50 dark:bg-slate-900/60",
-    border: "border-slate-500/20",
+    color: "text-slate-700 dark:text-slate-400",
+    bg: "bg-slate-100/60 dark:bg-slate-900/60",
+    border: "border-slate-200 dark:border-slate-800/30",
     icon: FileText
   }
 };
@@ -279,17 +279,16 @@ export default function NewDocumentsPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       
-      {/* ─── TITLE & HERO BANNER ───────────────────────────── */}
-      <section className="bg-surface-container-lowest p-6 md:p-8 rounded-2xl border border-outline-variant/30 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden shadow-sm">
-        {/* Soft atmospheric gradient glow matching Warmth & Order theme */}
-        <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-gradient-to-br from-primary/10 via-secondary/5 to-transparent blur-3xl pointer-events-none" />
+      {/* ── Page Header ────────────────────────────────────── */}
+      <section className="glass-card p-6 md:p-8 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-gradient-to-br from-primary/5 via-secondary/5 to-transparent blur-3xl pointer-events-none" />
 
         <div className="relative z-10 space-y-1">
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-on-surface-variant/80">
             <Lock className="h-3.5 w-3.5 text-primary" />
             <span>Secure Link Storage</span>
           </div>
-          <h2 className="font-heading text-3xl md:text-4xl font-extrabold text-on-surface tracking-tight">
+          <h2 className="font-serif text-3xl md:text-4xl font-extrabold text-on-surface tracking-tight">
             Document <span className="text-primary italic">Vault</span>
           </h2>
           <p className="text-sm text-on-surface-variant font-medium max-w-2xl">
@@ -312,14 +311,14 @@ export default function NewDocumentsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* Storage usage / security policy card */}
-        <div className="lg:col-span-4 bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/20 shadow-sm flex flex-col justify-between">
+        <div className="lg:col-span-4 glass-card p-6 rounded-2xl flex flex-col justify-between">
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-tertiary/10 text-tertiary flex items-center justify-center">
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="font-heading text-base font-bold text-on-surface">Privacy First</h3>
+                <h3 className="font-serif text-base font-bold text-on-surface">Privacy First</h3>
                 <p className="text-[10px] text-on-surface-variant/50 font-bold uppercase tracking-wider">Storage Guidelines</p>
               </div>
             </div>
@@ -348,9 +347,9 @@ export default function NewDocumentsPage() {
         </div>
 
         {/* Categories folder grid */}
-        <div className="lg:col-span-8 bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/20 shadow-sm space-y-4">
+        <div className="lg:col-span-8 glass-card p-6 rounded-2xl space-y-4">
           <div>
-            <h3 className="font-heading text-lg font-bold text-on-surface">Category Folders</h3>
+            <h3 className="font-serif text-lg font-bold text-on-surface">Category Folders</h3>
             <p className="text-xs text-on-surface-variant font-medium">Tap a folder to filter your file list below.</p>
           </div>
 
@@ -396,7 +395,7 @@ export default function NewDocumentsPage() {
       </div>
 
       {/* ─── SEARCH & FILTER CONTROLS ───────────────────────── */}
-      <section className="bg-surface-container-lowest rounded-2xl p-4 border border-outline-variant/20 shadow-sm flex flex-col sm:flex-row gap-3 items-center justify-between">
+      <section className="glass-card rounded-2xl p-4 flex flex-col sm:flex-row gap-3 items-center justify-between">
         <div className="relative w-full sm:max-w-xs">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-on-surface-variant/65" />
           <input
@@ -431,11 +430,11 @@ export default function NewDocumentsPage() {
       </section>
 
       {/* ─── DOCUMENTS TABLE / GRID ─────────────────────────── */}
-      <section className="bg-surface-container-lowest rounded-2xl border border-outline-variant/20 shadow-sm overflow-hidden">
+      <section className="glass-card rounded-2xl overflow-hidden">
         
         {/* Table Header Row (Desktop Layout) */}
         <div className="px-6 py-4 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low/30">
-          <h3 className="font-heading text-base font-bold text-on-surface">
+          <h3 className="font-serif text-base font-bold text-on-surface">
             {categoryFilter === "all" ? "All Documents" : `${CATEGORY_MAP[categoryFilter]?.label} Files`}
           </h3>
           <span className="text-xs text-on-surface-variant/70 font-semibold">
@@ -571,11 +570,12 @@ export default function NewDocumentsPage() {
 
           <form 
             onSubmit={handleSaveDocument} 
-            className="relative z-10 w-full max-w-lg bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200"
+            className="relative z-10 w-full max-w-md glass-card rounded-2xl p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150"
           >
-            <div className="flex items-center justify-between pb-3 border-b border-outline-variant/15">
-              <h3 className="font-heading text-lg font-bold text-primary flex items-center gap-2">
-                <Lock className="h-5 w-5" /> Register Document Link
+            <div className="flex items-center justify-between pb-3 border-b border-outline-variant/20">
+              <h3 className="font-serif text-lg font-bold text-primary flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Register Reference Link
               </h3>
               <button 
                 type="button"

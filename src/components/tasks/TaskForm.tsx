@@ -12,7 +12,7 @@ export function TaskForm({ action }: { action: (formData: FormData) => Promise<v
         <input 
           name="title" 
           type="text"
-          className="w-full rounded border border-outline-variant bg-white px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none transition-colors" 
+          className="w-full rounded border border-outline-variant bg-surface-container-low px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none transition-colors" 
           placeholder="e.g. Clean the garage" 
           required 
         />
@@ -23,7 +23,7 @@ export function TaskForm({ action }: { action: (formData: FormData) => Promise<v
         <textarea 
           name="description" 
           rows={3}
-          className="w-full rounded border border-outline-variant bg-white px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none transition-colors resize-none" 
+          className="w-full rounded border border-outline-variant bg-surface-container-low px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none transition-colors resize-none" 
           placeholder="Brief details about the task..." 
         />
       </div>
@@ -34,7 +34,7 @@ export function TaskForm({ action }: { action: (formData: FormData) => Promise<v
           <input 
             name="due_date" 
             type="date" 
-            className="w-full rounded border border-outline-variant bg-white px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none transition-colors" 
+            className="w-full rounded border border-outline-variant bg-surface-container-low px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none transition-colors" 
           />
         </div>
 
@@ -42,7 +42,7 @@ export function TaskForm({ action }: { action: (formData: FormData) => Promise<v
           <label className="text-[10px] font-bold uppercase tracking-wider text-primary">Priority</label>
           <select 
             name="priority" 
-            className="w-full rounded border border-outline-variant bg-white px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none transition-colors" 
+            className="w-full rounded border border-outline-variant bg-surface-container-low px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none transition-colors" 
             defaultValue="medium"
           >
             <option value="low">Low</option>

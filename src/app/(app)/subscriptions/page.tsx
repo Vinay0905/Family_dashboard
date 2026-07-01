@@ -49,36 +49,36 @@ const getCategoryStyles = (name: string, category: string) => {
 
   if (n.includes("netflix")) {
     return {
-      bgColor: "bg-[#E50914]/10",
-      textColor: "text-[#E50914]",
+      bgColor: "bg-[#E50914]/10 dark:bg-[#ff333a]/15",
+      textColor: "text-[#E50914] dark:text-[#ff333a]",
       icon: Film
     };
   }
   if (n.includes("spotify")) {
     return {
-      bgColor: "bg-[#1DB954]/10",
-      textColor: "text-[#1DB954]",
+      bgColor: "bg-[#1DB954]/10 dark:bg-[#1DB954]/5",
+      textColor: "text-[#1aa34a] dark:text-[#1DB954]",
       icon: Music
     };
   }
   if (n.includes("amazon") || n.includes("prime")) {
     return {
-      bgColor: "bg-[#FF9900]/10",
-      textColor: "text-[#FF9900]",
+      bgColor: "bg-[#FF9900]/10 dark:bg-[#FF9900]/5",
+      textColor: "text-[#c2410c] dark:text-[#FF9900]",
       icon: ShoppingBag
     };
   }
   if (n.includes("disney") || n.includes("hotstar")) {
     return {
-      bgColor: "bg-[#0060ac]/10",
-      textColor: "text-[#0060ac]",
+      bgColor: "bg-[#0060ac]/10 dark:bg-[#38bdf8]/10",
+      textColor: "text-[#0060ac] dark:text-[#38bdf8]",
       icon: Tv
     };
   }
   if (n.includes("gym") || n.includes("fitness") || n.includes("fit life")) {
     return {
-      bgColor: "bg-secondary/10",
-      textColor: "text-secondary",
+      bgColor: "bg-secondary/15 dark:bg-secondary/20",
+      textColor: "text-secondary-foreground dark:text-secondary",
       icon: Activity
     };
   }
@@ -86,42 +86,42 @@ const getCategoryStyles = (name: string, category: string) => {
   // Fallbacks by category
   if (cat.includes("entertainment")) {
     return {
-      bgColor: "bg-rose-500/10",
-      textColor: "text-rose-500",
+      bgColor: "bg-rose-100/60 dark:bg-rose-950/20",
+      textColor: "text-rose-700 dark:text-rose-450",
       icon: Film
     };
   }
   if (cat.includes("utility")) {
     return {
-      bgColor: "bg-emerald-500/10",
-      textColor: "text-emerald-500",
+      bgColor: "bg-emerald-100/60 dark:bg-emerald-950/20",
+      textColor: "text-emerald-700 dark:text-emerald-450",
       icon: Zap
     };
   }
   if (cat.includes("cloud") || cat.includes("software")) {
     return {
-      bgColor: "bg-blue-500/10",
-      textColor: "text-blue-500",
+      bgColor: "bg-blue-100/60 dark:bg-blue-950/20",
+      textColor: "text-blue-700 dark:text-blue-400",
       icon: Cloud
     };
   }
   if (cat.includes("education")) {
     return {
-      bgColor: "bg-violet-500/10",
-      textColor: "text-violet-500",
+      bgColor: "bg-violet-100/60 dark:bg-violet-950/20",
+      textColor: "text-violet-700 dark:text-violet-400",
       icon: GraduationCap
     };
   }
   if (cat.includes("insurance")) {
     return {
-      bgColor: "bg-amber-500/10",
-      textColor: "text-amber-500",
+      bgColor: "bg-amber-100/60 dark:bg-amber-950/20",
+      textColor: "text-amber-800 dark:text-amber-450",
       icon: Shield
     };
   }
   return {
-    bgColor: "bg-slate-500/10",
-    textColor: "text-slate-500",
+    bgColor: "bg-slate-100/60 dark:bg-slate-900/60",
+    textColor: "text-slate-700 dark:text-slate-400",
     icon: CreditCard
   };
 };
@@ -455,8 +455,8 @@ export default function NewSubscriptionsPage() {
     if (renewalDateStr <= today) {
       return {
         label: "Due / Overdue",
-        color: "bg-rose-500/10 text-rose-700 border-rose-500/20",
-        dotColor: "bg-rose-500",
+        color: "bg-error/10 text-error border-error/20",
+        dotColor: "bg-error",
         code: "red"
       };
     }
@@ -467,15 +467,15 @@ export default function NewSubscriptionsPage() {
     if (diffDays <= 7) {
       return {
         label: "Renewing Soon",
-        color: "bg-amber-500/10 text-amber-750 border-amber-500/20",
-        dotColor: "bg-amber-500",
+        color: "bg-warning/10 text-warning border-warning/20",
+        dotColor: "bg-warning",
         code: "yellow"
       };
     }
     return {
       label: "Active / Safe",
-      color: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20",
-      dotColor: "bg-emerald-500",
+      color: "bg-success/10 text-success border-success/20",
+      dotColor: "bg-success",
       code: "green"
     };
   };
@@ -668,7 +668,7 @@ export default function NewSubscriptionsPage() {
       {/* ─── HEADER PANEL ────────────────────────────────────── */}
       <section className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
         <div>
-          <h2 className="font-heading text-3xl font-extrabold text-on-surface tracking-tight">
+          <h2 className="font-serif text-3xl font-extrabold text-on-surface tracking-tight">
             Family Subscriptions
           </h2>
           <p className="text-sm text-on-surface-variant font-medium mt-1">
@@ -695,7 +695,7 @@ export default function NewSubscriptionsPage() {
               Monthly Outflow
             </span>
             <div className="flex items-baseline gap-1 mt-1">
-              <span className="font-heading text-4xl font-extrabold">
+              <span className="font-serif text-4xl font-extrabold">
                 ₹{totalMonthlyOutflow.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
               </span>
               <span className="text-sm font-semibold opacity-85">/mo</span>
@@ -712,14 +712,14 @@ export default function NewSubscriptionsPage() {
         </div>
 
         {/* Saving Opportunity Card */}
-        <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 flex flex-col justify-between h-[180px] shadow-xs">
+        <div className="glass-card rounded-2xl p-6 flex flex-col justify-between h-[180px]">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-tertiary-container/10 flex items-center justify-center text-tertiary">
                 <Lightbulb className="h-4 w-4" />
               </div>
               <div>
-                <h4 className="font-heading text-xs font-bold text-on-surface">Saving Opportunity</h4>
+                <h4 className="font-serif text-xs font-bold text-on-surface">Saving Opportunity</h4>
                 <p className="text-[10px] text-on-surface-variant/60 font-semibold">{savingOpportunity.title}</p>
               </div>
             </div>
@@ -733,14 +733,14 @@ export default function NewSubscriptionsPage() {
         </div>
 
         {/* Upcoming Renewals Card */}
-        <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 flex flex-col justify-between h-[180px] shadow-xs">
+        <div className="glass-card rounded-2xl p-6 flex flex-col justify-between h-[180px]">
           <div className="space-y-2 flex-grow overflow-hidden">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-secondary-container/10 flex items-center justify-center text-secondary">
                 <Calendar className="h-4 w-4" />
               </div>
               <div>
-                <h4 className="font-heading text-xs font-bold text-on-surface">Upcoming Renewals</h4>
+                <h4 className="font-serif text-xs font-bold text-on-surface">Upcoming Renewals</h4>
                 <p className="text-[10px] text-on-surface-variant/60 font-semibold">Next 7 Days</p>
               </div>
             </div>
@@ -770,8 +770,8 @@ export default function NewSubscriptionsPage() {
       </section>
 
       {/* ─── ACTIVE SERVICES CONTROLS ────────────────────────── */}
-      <section className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-4 shadow-xs flex flex-col lg:flex-row gap-4 items-center justify-between">
-        <h3 className="font-heading text-lg font-bold text-on-surface shrink-0 self-start lg:self-center">
+      <section className="glass-card rounded-2xl p-4 flex flex-col lg:flex-row gap-4 items-center justify-between">
+        <h3 className="font-serif text-lg font-bold text-on-surface shrink-0 self-start lg:self-center">
           Active Services
         </h3>
 
@@ -866,9 +866,9 @@ export default function NewSubscriptionsPage() {
             return (
               <div
                 key={sub.id}
-                className={`bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/25 shadow-xs flex flex-col justify-between transition-all duration-300 hover:scale-[1.01] hover:shadow-md active:scale-[0.99] ${
+                className={`glass-card p-6 rounded-2xl flex flex-col justify-between transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] ${
                   sub.is_active ? "" : "opacity-65 grayscale-[0.2]"
-                }`}
+                } ${statusInfo.code === "red" ? "neon-glow-active border border-error/30" : ""}`}
               >
                 <div>
                   <div className="flex justify-between items-start mb-4">
@@ -877,7 +877,7 @@ export default function NewSubscriptionsPage() {
                         <Icon className="h-5 w-5 stroke-[2]" />
                       </div>
                       <div className="min-w-0">
-                        <h4 className="font-heading font-extrabold text-on-surface text-base truncate pr-1" title={sub.name}>
+                        <h4 className="font-serif text-on-surface text-base pr-1 truncate font-bold" title={sub.name}>
                           {sub.name}
                         </h4>
                         <p className="text-[10px] text-on-surface-variant/75 font-semibold truncate max-w-[130px]">
@@ -989,7 +989,7 @@ export default function NewSubscriptionsPage() {
           <div className="w-12 h-12 rounded-full bg-surface-container group-hover:scale-110 transition-all duration-200 flex items-center justify-center text-on-surface-variant/80">
             <Plus className="h-6 w-6 stroke-[2.5]" />
           </div>
-          <span className="font-heading font-bold text-sm">Track New Service</span>
+          <span className="font-serif font-bold text-sm">Track New Service</span>
           <span className="text-xs text-on-surface-variant/60 font-semibold">Add a recurring expense card</span>
         </button>
 
@@ -999,8 +999,8 @@ export default function NewSubscriptionsPage() {
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         
         {/* Spending by Category (Donut Chart) */}
-        <div className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/20 shadow-xs">
-          <h4 className="font-heading text-lg font-bold text-on-surface mb-6">Spending by Category</h4>
+        <div className="glass-card p-6 rounded-2xl">
+          <h4 className="font-serif text-lg font-bold text-on-surface mb-6">Spending by Category</h4>
           
           <div className="flex flex-col sm:flex-row items-center gap-8">
             <div className="relative w-36 h-36 flex items-center justify-center">
@@ -1024,7 +1024,7 @@ export default function NewSubscriptionsPage() {
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-2">
                 <span className="text-[8px] uppercase font-extrabold text-on-surface-variant/50 tracking-wider">Active Total</span>
-                <span className="text-xs font-heading font-black text-on-surface truncate max-w-full">
+                <span className="text-xs font-serif font-black text-on-surface truncate max-w-full">
                   ₹{Math.round(totalOutflowActive).toLocaleString("en-IN")}
                 </span>
               </div>
@@ -1054,8 +1054,8 @@ export default function NewSubscriptionsPage() {
         </div>
 
         {/* Annual Projections (Bar Chart) */}
-        <div className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/20 shadow-xs">
-          <h4 className="font-heading text-lg font-bold text-on-surface mb-2">Annual Projection</h4>
+        <div className="glass-card p-6 rounded-2xl">
+          <h4 className="font-serif text-lg font-bold text-on-surface mb-2">Annual Projection</h4>
           <p className="text-xs text-on-surface-variant font-medium mb-6">Visual monthly outflows projection for the next 6 months.</p>
 
           <div className="flex flex-col h-[180px] justify-between">
@@ -1111,10 +1111,10 @@ export default function NewSubscriptionsPage() {
 
           <form 
             onSubmit={handleFormSubmit} 
-            className="relative z-10 w-full max-w-lg bg-surface-container-lowest rounded-2xl p-6 shadow-2xl border border-outline-variant/20 space-y-4 animate-in fade-in zoom-in-95 duration-150"
+            className="relative z-10 w-full max-w-lg glass-card rounded-2xl p-6 shadow-2xl border border-outline-variant/20 space-y-4 animate-in fade-in zoom-in-95 duration-150"
           >
             <div className="flex items-center justify-between pb-3 border-b border-outline-variant/15">
-              <h3 className="font-heading text-lg font-bold text-primary flex items-center gap-2">
+              <h3 className="font-serif text-lg font-bold text-primary flex items-center gap-2">
                 <CreditCard className="h-5 w-5" />
                 {editingSub ? "Edit Subscription" : "Track Subscription"}
               </h3>

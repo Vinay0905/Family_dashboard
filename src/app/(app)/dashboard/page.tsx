@@ -28,11 +28,49 @@ interface DashboardData {
   familyName: string;
   todayEvents: number;
   openTasks: number;
+  completedTasks: number;
   shoppingItems: number;
+  completedShoppingItems: number;
   expensesTotal: number;
   expenseSparkline: number[];
   upcomingEvents: { id: string; title: string; start_at: string; category: string }[];
   recentTasks: { id: string; title: string; status: string; due_date: string | null }[];
+}
+
+import { cn } from "@/lib/utils";
+
+/* ─── Circular Progress SVG Dial ────────────────────────────── */
+function StatDial({ percentage, colorClass = "stroke-primary" }: { percentage: number; colorClass?: string }) {
+  const radius = 18;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (Math.min(percentage, 100) / 100) * circumference;
+
+  return (
+    <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
+      <svg className="w-full h-full transform -rotate-90">
+        <circle
+          cx="24"
+          cy="24"
+          r={radius}
+          className="stroke-muted-foreground/15 fill-transparent"
+          strokeWidth="3.5"
+        />
+        <circle
+          cx="24"
+          cy="24"
+          r={radius}
+          className={cn("fill-transparent transition-all duration-1000 ease-out", colorClass)}
+          strokeWidth="3.5"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+        />
+      </svg>
+      <span className="absolute text-[10px] font-black text-foreground font-sans tracking-tight">
+        {Math.round(percentage)}%
+      </span>
+    </div>
+  );
 }
 
 function getGreeting() {
@@ -43,7 +81,7 @@ function getGreeting() {
 }
 
 /* ─── Refined Sparkline SVG ─────────────────────────────────── */
-function Sparkline({ data, color = "#005da7", height = 80 }: { data: number[]; color?: string; height?: number }) {
+function Sparkline({ data, color = "var(--color-chart-2)", height = 80 }: { data: number[]; color?: string; height?: number }) {
   if (!data || data.length < 2) {
     return (
       <svg className="w-full" style={{ height }} viewBox="0 0 100 40" preserveAspectRatio="none">
@@ -79,27 +117,27 @@ function Sparkline({ data, color = "#005da7", height = 80 }: { data: number[]; c
       </defs>
       <path d={areaD} fill="url(#sparkAreaNew)" />
       <path d={pathD} fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={lastPt.x} cy={lastPt.y} r="2.2" fill="white" stroke={color} strokeWidth="1.5" />
+      <circle cx={lastPt.x} cy={lastPt.y} r="2.2" fill="var(--color-background)" stroke={color} strokeWidth="1.5" />
     </svg>
   );
 }
 
 /* ─── Warmth & Order Style Maps ────────────────────────────── */
 const CAT_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
-  family:   { bg: "bg-primary/10", text: "text-primary", dot: "bg-primary" },
-  school:   { bg: "bg-purple-600/10", text: "text-purple-700", dot: "bg-purple-600" },
-  work:     { bg: "bg-blue-600/10", text: "text-blue-700", dot: "bg-blue-600" },
-  travel:   { bg: "bg-amber-600/10", text: "text-amber-700", dot: "bg-amber-600" },
-  medical:  { bg: "bg-rose-600/10", text: "text-rose-700", dot: "bg-rose-600" },
-  birthday: { bg: "bg-emerald-600/10", text: "text-emerald-700", dot: "bg-emerald-600" },
-  other:    { bg: "bg-slate-600/10", text: "text-slate-700", dot: "bg-slate-500" },
+  family:   { bg: "bg-primary/15", text: "text-primary", dot: "bg-primary" },
+  school:   { bg: "bg-chart-1/15", text: "text-chart-1", dot: "bg-chart-1" },
+  work:     { bg: "bg-chart-2/15", text: "text-chart-2", dot: "bg-chart-2" },
+  travel:   { bg: "bg-chart-3/15", text: "text-chart-3", dot: "bg-chart-3" },
+  medical:  { bg: "bg-destructive/15", text: "text-destructive", dot: "bg-destructive" },
+  birthday: { bg: "bg-chart-4/15", text: "text-chart-4", dot: "bg-chart-4" },
+  other:    { bg: "bg-muted", text: "text-muted-foreground", dot: "bg-muted-foreground/60" },
 };
 
 const STATUS_STYLE: Record<string, { bg: string; text: string }> = {
-  pending:     { bg: "bg-amber-500/10", text: "text-amber-800" },
-  in_progress: { bg: "bg-blue-500/10", text: "text-blue-800" },
-  completed:   { bg: "bg-emerald-500/10", text: "text-emerald-800" },
-  overdue:     { bg: "bg-rose-500/10", text: "text-rose-800" },
+  pending:     { bg: "bg-chart-3/15", text: "text-chart-3" },
+  in_progress: { bg: "bg-chart-1/15", text: "text-chart-1" },
+  completed:   { bg: "bg-chart-4/15", text: "text-chart-4" },
+  overdue:     { bg: "bg-destructive/15", text: "text-destructive" },
 };
 
 /* ─── Animated stat number ──────────────────────────────────── */
@@ -125,6 +163,8 @@ export default function NewDashboardPage() {
   const supabase = createClient();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<DashboardData | null>(null);
+  const [taskFilter, setTaskFilter] = useState<"all" | "overdue" | "active">("all");
+  const [eventFilter, setEventFilter] = useState<"all" | "today" | "upcoming">("all");
 
   const { familyId: cachedFamilyId, familyMembers: cachedMembers, currentUser: cachedUser, memberRole: cachedRole, familyName: cachedFamilyName, isInitialized, setAppInfo } = useAppStore();
 
@@ -195,11 +235,13 @@ export default function NewDashboardPage() {
       const monthFrom = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
       const monthTo = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
 
-      const [eventsRes, tasksRes, shoppingRes, expenseMonthRes, expenseLast7Res, upcomingEventsRes, recentTasksRes] =
+      const [eventsRes, tasksRes, completedTasksRes, shoppingRes, completedShoppingRes, expenseMonthRes, expenseLast7Res, upcomingEventsRes, recentTasksRes] =
         await Promise.all([
           supabase.from("events").select("id", { count: "exact", head: true }).eq("family_id", activeFamilyId).gte("start_at", `${today}T00:00:00`).lte("start_at", `${today}T23:59:59`),
           supabase.from("tasks").select("id", { count: "exact", head: true }).eq("family_id", activeFamilyId).neq("status", "completed"),
+          supabase.from("tasks").select("id", { count: "exact", head: true }).eq("family_id", activeFamilyId).eq("status", "completed"),
           supabase.from("shopping_items").select("id", { count: "exact", head: true }).eq("family_id", activeFamilyId).eq("is_purchased", false),
+          supabase.from("shopping_items").select("id", { count: "exact", head: true }).eq("family_id", activeFamilyId).eq("is_purchased", true),
           supabase.from("expenses").select("amount").eq("family_id", activeFamilyId).gte("expense_date", monthFrom).lte("expense_date", monthTo),
           supabase.from("expenses").select("amount, expense_date").eq("family_id", activeFamilyId).gte("expense_date", sevenDaysAgoStr).lte("expense_date", today).order("expense_date", { ascending: true }),
           supabase.from("events").select("id, title, start_at, category").eq("family_id", activeFamilyId).gte("start_at", `${today}T00:00:00`).order("start_at", { ascending: true }).limit(5),
@@ -222,7 +264,9 @@ export default function NewDashboardPage() {
         familyName: activeFamilyName,
         todayEvents: eventsRes.count ?? 0,
         openTasks: tasksRes.count ?? 0,
+        completedTasks: completedTasksRes.count ?? 0,
         shoppingItems: shoppingRes.count ?? 0,
+        completedShoppingItems: completedShoppingRes.count ?? 0,
         expensesTotal: (expenseMonthRes.data || []).reduce((s, e) => s + Number(e.amount), 0),
         expenseSparkline: Object.values(dayMap),
         upcomingEvents: upcomingEventsRes.data ?? [],
@@ -260,179 +304,247 @@ export default function NewDashboardPage() {
   );
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      
-      {/* ─── HERO GREETING SECTION ───────────────────────────── */}
-      <section className="bg-surface-container-lowest p-6 md:p-8 rounded-2xl border border-outline-variant/30 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
-        {/* Soft atmospheric gradient glow matching Warmth & Order */}
-        <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-gradient-to-br from-primary/10 via-secondary/5 to-transparent blur-3xl pointer-events-none" />
+    <div className="max-w-7xl mx-auto p-4 md:p-6">
+      <div className="bento-grid">
         
-        <div className="relative z-10 space-y-1">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-on-surface-variant/80">
-            <span>{greeting.emoji}</span>
-            <span>{greeting.text}</span>
+        {/* ─── HERO GREETING SECTION ───────────────────────────── */}
+        <section className="col-span-12 glass-card neon-glow hover:neon-glow-active p-6 md:p-8 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden transition-all duration-300">
+          {/* Soft atmospheric gradient glow matching Warmth & Order */}
+          <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-gradient-to-br from-primary/15 via-tertiary/10 to-transparent blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-10 -left-10 w-72 h-72 rounded-full bg-gradient-to-tr from-secondary/10 to-transparent blur-3xl pointer-events-none" />
+          
+          <div className="relative z-10 space-y-2">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground/90">
+              <span className="text-base">{greeting.emoji}</span>
+              <span className="font-sans">{greeting.text}</span>
+            </div>
+            <h1 className="font-serif text-3xl md:text-5xl font-black tracking-tight text-foreground leading-tight">
+              {greeting.text === "Good morning" ? "Good morning" : greeting.text === "Good afternoon" ? "Good afternoon" : "Good evening"}, <span className="text-primary font-black">{data.displayName}</span>
+            </h1>
+            <p className="text-sm text-muted-foreground/80 font-semibold font-sans flex items-center gap-1.5">
+              <Clock className="h-4 w-4 text-primary/70 animate-pulse" />
+              {todayStr}
+            </p>
           </div>
-          <h2 className="font-quicksand text-3xl md:text-4xl font-extrabold text-on-surface tracking-tight">
-            {greeting.text === "Good morning" ? "Good morning" : greeting.text === "Good afternoon" ? "Good afternoon" : "Good evening"}, {data.displayName}
-          </h2>
-          <p className="text-sm text-on-surface-variant font-medium">{todayStr}</p>
-        </div>
 
-        <div className="relative z-10 flex flex-wrap gap-2">
-          <span className="inline-flex items-center gap-1.5 text-xs font-bold bg-primary/10 text-primary px-4 py-2 rounded-xl border border-primary/20">
-            <Sparkles className="h-3.5 w-3.5" />
-            {data.familyName}
-          </span>
-          {overdueTasks.length > 0 && (
-            <span className="inline-flex items-center gap-1.5 text-xs font-bold bg-secondary-container/10 text-secondary px-3 py-2 rounded-xl border border-secondary-container/20">
-              <AlertTriangle className="h-3.5 w-3.5" />
-              {overdueTasks.length} overdue chore{overdueTasks.length > 1 ? "s" : ""}
+          <div className="relative z-10 flex flex-wrap gap-3">
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold bg-primary/10 text-primary px-4 py-2.5 rounded-xl border border-primary/20 shadow-xs hover:bg-primary/20 transition-colors">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              {data.familyName}
             </span>
-          )}
-        </div>
-      </section>
+            {overdueTasks.length > 0 && (
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold bg-destructive/10 text-destructive px-3.5 py-2.5 rounded-xl border border-destructive/20 shadow-xs hover:bg-destructive/20 transition-colors">
+                <AlertTriangle className="h-3.5 w-3.5 text-destructive animate-bounce" />
+                {overdueTasks.length} overdue chore{overdueTasks.length > 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
+        </section>
 
-      {/* ─── BENTO STATS GRID ────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          {
-            icon: CalendarDays,
-            label: "Events Today",
-            value: data.todayEvents,
-            desc: "agenda items",
-            href: "/calendar",
-            iconBg: "bg-[#E3F2FD] text-primary",
-            activeClass: "hover:bg-primary-container/5 hover:border-primary/30",
-          },
-          {
-            icon: CheckSquare,
-            label: "Active Tasks",
-            value: data.openTasks,
-            desc: "household chores",
-            href: "/tasks",
-            iconBg: "bg-[#E8F5E9] text-tertiary",
-            activeClass: "hover:bg-tertiary-container/5 hover:border-tertiary/30",
-          },
-          {
-            icon: ShoppingCart,
-            label: "Shopping Items",
-            value: data.shoppingItems,
-            desc: "items to buy",
-            href: "/shopping",
-            iconBg: "bg-[#FFF3E0] text-secondary",
-            activeClass: "hover:bg-secondary-container/10 hover:border-secondary/30",
-          },
-          {
-            icon: TrendingUp,
-            label: "Total Expenses",
-            value: -1, // special card for spend
-            desc: "spent this month",
-            href: "/expenses",
-            iconBg: "bg-[#FFEBEE] text-secondary-container",
-            activeClass: "hover:bg-secondary-container/10 hover:border-secondary-container/30",
-          },
-        ].map((card, idx) => {
-          const Icon = card.icon;
-          return (
-            <Link
-              key={idx}
-              href={card.href}
-              className={`bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/20 flex flex-col justify-between group transition-all duration-200 active:scale-[0.98] shadow-sm ${card.activeClass}`}
-            >
-              <div className="flex justify-between items-start mb-4">
-                <div className={`p-3 rounded-full ${card.iconBg} flex items-center justify-center shadow-xs`}>
-                  <Icon className="h-5 w-5" />
+        {/* ─── BENTO STATS CARDS ────────────────────────────────── */}
+        {(() => {
+          const eventsPercentage = data.todayEvents > 0 ? Math.max(100 - (data.todayEvents * 15), 10) : 100;
+          const totalTasks = data.openTasks + data.completedTasks;
+          const tasksPercentage = totalTasks > 0 ? (data.completedTasks / totalTasks) * 100 : 100;
+          const totalShopping = data.shoppingItems + data.completedShoppingItems;
+          const shoppingPercentage = totalShopping > 0 ? (data.completedShoppingItems / totalShopping) * 100 : 100;
+          const budgetLimit = 30000;
+          const expensesPercentage = Math.min((data.expensesTotal / budgetLimit) * 100, 100);
+
+          const statsCards = [
+            {
+              icon: CalendarDays,
+              label: "Events Today",
+              value: data.todayEvents,
+              desc: "click to filter agenda today",
+              href: "/calendar",
+              iconBg: "bg-primary/10 text-primary",
+              hoverBorder: "hover:border-primary/40",
+              percentage: eventsPercentage,
+              dialColor: "stroke-primary",
+              active: eventFilter === "today",
+              onClick: () => setEventFilter(prev => prev === "today" ? "all" : "today"),
+            },
+            {
+              icon: CheckSquare,
+              label: "Active Tasks",
+              value: data.openTasks,
+              desc: "click to filter pending chores",
+              href: "/tasks",
+              iconBg: "bg-tertiary/10 text-tertiary",
+              hoverBorder: "hover:border-tertiary/40",
+              percentage: tasksPercentage,
+              dialColor: "stroke-tertiary",
+              active: taskFilter === "active",
+              onClick: () => setTaskFilter(prev => prev === "active" ? "all" : "active"),
+            },
+            {
+              icon: ShoppingCart,
+              label: "Shopping Items",
+              value: data.shoppingItems,
+              desc: "purchased vs total lists",
+              href: "/shopping",
+              iconBg: "bg-chart-1/10 text-chart-1",
+              hoverBorder: "hover:border-chart-1/40",
+              percentage: shoppingPercentage,
+              dialColor: "stroke-chart-1",
+              active: false,
+              onClick: () => router.push("/shopping"),
+            },
+            {
+              icon: TrendingUp,
+              label: "Total Expenses",
+              value: -1,
+              desc: "spent of ₹30,000 budget",
+              href: "/expenses",
+              iconBg: "bg-destructive/10 text-destructive",
+              hoverBorder: "hover:border-destructive/40",
+              percentage: expensesPercentage,
+              dialColor: "stroke-destructive",
+              active: false,
+              onClick: () => router.push("/expenses"),
+            },
+          ];
+
+          return statsCards.map((card, idx) => {
+            const Icon = card.icon;
+            return (
+              <div
+                key={idx}
+                onClick={card.onClick}
+                className={cn(
+                  "col-span-6 lg:col-span-3 glass-card neon-glow hover:neon-glow-active p-6 rounded-2xl flex flex-col justify-between group transition-all duration-300 ease-out cursor-pointer hover:-translate-y-1.5 hover:scale-[1.03]",
+                  card.hoverBorder,
+                  card.active && "border-primary/50 shadow-md scale-[1.02] bg-primary/[0.03]"
+                )}
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div className={`p-3 rounded-xl ${card.iconBg} flex items-center justify-center shadow-xs transition-transform duration-300 group-hover:scale-110`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <StatDial percentage={card.percentage} colorClass={card.dialColor} />
+                    <Link 
+                      href={card.href} 
+                      onClick={(e) => e.stopPropagation()} 
+                      className="p-1.5 rounded-lg bg-muted/50 border border-border hover:bg-accent text-muted-foreground hover:text-foreground transition-all shrink-0"
+                      title={`Open ${card.label}`}
+                    >
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </div>
                 </div>
-                <ArrowRight className="h-4 w-4 text-on-surface-variant/30 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
-              </div>
 
-              <div>
-                <span className="block font-quicksand text-3xl font-bold text-on-surface leading-none">
-                  {card.value === -1 ? (
-                    `₹${data.expensesTotal.toLocaleString("en-IN")}`
-                  ) : (
-                    <AnimatedNumber value={card.value} />
-                  )}
-                </span>
-                <span className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant/40 mt-2">
-                  {card.label}
-                </span>
-                <span className="text-xs text-on-surface-variant/75 font-medium mt-0.5 block">
-                  {card.desc}
-                </span>
+                <div>
+                  <span className="block font-serif text-3xl md:text-4xl font-extrabold text-foreground leading-none tracking-tight">
+                    {card.value === -1 ? (
+                      `₹${data.expensesTotal.toLocaleString("en-IN")}`
+                    ) : (
+                      <AnimatedNumber value={card.value} />
+                    )}
+                  </span>
+                  <span className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mt-3 font-sans">
+                    {card.label}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground/85 font-semibold mt-0.5 block font-sans">
+                    {card.desc}
+                  </span>
+                </div>
               </div>
-            </Link>
-          );
-        })}
-      </div>
+            );
+          });
+        })()}
 
-      {/* ─── MAIN BLOCKS ────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Upcoming Agenda Feed */}
-        <div className="lg:col-span-2 bg-surface-container-lowest rounded-2xl border border-outline-variant/20 p-6 flex flex-col justify-between">
+        {/* ─── UPCOMING AGENDA FEED ───────────────────────────── */}
+        <div className="col-span-12 lg:col-span-8 glass-card neon-glow hover:neon-glow-active p-6 rounded-2xl flex flex-col justify-between transition-all duration-300">
           <div>
             <div className="flex justify-between items-center mb-6">
-              <h3 className="font-quicksand text-xl font-bold text-on-surface">Upcoming Agenda</h3>
-              <Link href="/calendar" className="text-xs font-bold text-primary hover:underline flex items-center gap-1">
-                View Calendar <ArrowRight className="h-3 w-3" />
+              <div className="flex items-center gap-2.5">
+                <h3 className="font-serif text-2xl font-black text-foreground">Upcoming Agenda</h3>
+                {eventFilter !== "all" && (
+                  <span 
+                    onClick={() => setEventFilter("all")}
+                    className="text-[10px] font-black uppercase px-2.5 py-0.5 bg-primary/10 text-primary rounded-md border border-primary/20 cursor-pointer hover:bg-primary/20 transition-colors flex items-center gap-1 font-sans"
+                    title="Click to clear filter"
+                  >
+                    Today Only ✕
+                  </span>
+                )}
+              </div>
+              <Link href="/calendar" className="text-xs font-bold text-primary hover:text-primary/80 transition-colors flex items-center gap-1 font-sans group">
+                View Calendar <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
               </Link>
             </div>
 
-            {data.upcomingEvents.length === 0 ? (
-              <div className="py-12 flex flex-col items-center justify-center text-center text-on-surface-variant/40">
-                <CalendarDays className="h-10 w-10 mb-3 stroke-[1.5] text-on-surface-variant/30" />
-                <p className="text-sm font-semibold">Your agenda is clear today</p>
-                <p className="text-xs font-medium mt-1">Enjoy a relaxing day at home!</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {data.upcomingEvents.map((evt) => {
-                  const evtDate = new Date(evt.start_at);
-                  const isTodayEvt = evtDate.toDateString() === new Date().toDateString();
-                  const cat = CAT_COLORS[evt.category] ?? CAT_COLORS.other;
-                  return (
-                    <div key={evt.id} className="flex gap-4 items-center p-3 rounded-xl border border-outline-variant/15 hover:border-primary/30 hover:bg-surface-container-low/40 transition-all group">
-                      {/* Date / Time highlight box */}
-                      <div className={`shrink-0 w-12 h-12 rounded-xl flex flex-col items-center justify-center font-semibold text-center ${
-                        isTodayEvt ? "bg-primary text-on-primary shadow-xs" : "bg-surface-container-high text-on-surface"
-                      }`}>
-                        <span className="text-[10px] font-bold uppercase leading-none">{evtDate.toLocaleDateString("en-IN", { month: "short" })}</span>
-                        <span className="text-lg font-bold font-quicksand leading-none mt-0.5">{evtDate.getDate()}</span>
-                      </div>
+            {(() => {
+              const filteredEvents = data.upcomingEvents.filter((evt) => {
+                if (eventFilter === "all") return true;
+                const evtDate = new Date(evt.start_at);
+                const isTodayEvt = evtDate.toDateString() === new Date().toDateString();
+                if (eventFilter === "today") return isTodayEvt;
+                return true;
+              });
 
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-on-surface group-hover:text-primary transition-colors truncate">{evt.title}</p>
-                        <p className="text-xs text-on-surface-variant font-medium mt-0.5 flex items-center gap-1">
-                          <Clock className="h-3.5 w-3.5 text-on-surface-variant/60" />
-                          {evtDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
-                        </p>
-                      </div>
+              if (filteredEvents.length === 0) {
+                return (
+                  <div className="py-12 flex flex-col items-center justify-center text-center text-muted-foreground/50">
+                    <CalendarDays className="h-10 w-10 mb-3 stroke-[1.5] text-primary/30" />
+                    <p className="text-sm font-bold font-sans">No events matched this filter</p>
+                    <p className="text-xs font-semibold mt-1 font-sans">Click the badge to clear.</p>
+                  </div>
+                );
+              }
 
-                      <span className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-full border border-current/10 ${cat.bg} ${cat.text}`}>
-                        {evt.category}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+              return (
+                <div className="space-y-3">
+                  {filteredEvents.map((evt) => {
+                    const evtDate = new Date(evt.start_at);
+                    const isTodayEvt = evtDate.toDateString() === new Date().toDateString();
+                    const cat = CAT_COLORS[evt.category] ?? CAT_COLORS.other;
+                    return (
+                      <div key={evt.id} className="flex gap-4 items-center p-3.5 rounded-xl border border-border hover:border-primary/30 hover:bg-muted/30 transition-all duration-200 group/item">
+                        {/* Date / Time highlight box */}
+                        <div className={`shrink-0 w-12 h-12 rounded-xl flex flex-col items-center justify-center font-bold text-center transition-all ${
+                          isTodayEvt ? "bg-primary text-primary-foreground shadow-sm scale-105" : "bg-muted text-foreground"
+                        }`}>
+                          <span className="text-[10px] font-bold uppercase leading-none tracking-wider">{evtDate.toLocaleDateString("en-IN", { month: "short" })}</span>
+                          <span className="text-lg font-extrabold font-serif leading-none mt-0.5">{evtDate.getDate()}</span>
+                        </div>
+
+                        <div className="flex-1 min-w-0 font-sans">
+                          <p className="text-sm font-bold text-foreground group-hover/item:text-primary transition-colors truncate">{evt.title}</p>
+                          <p className="text-xs text-muted-foreground font-semibold mt-0.5 flex items-center gap-1.5">
+                            <Clock className="h-3.5 w-3.5 text-primary/65 animate-pulse" />
+                            {evtDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        </div>
+
+                        <span className={`text-[10px] font-bold uppercase px-3 py-1 rounded-full border border-current/10 font-sans tracking-wide ${cat.bg} ${cat.text}`}>
+                          {evt.category}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         </div>
 
-        {/* Quick Actions Panel */}
-        <div className="lg:col-span-1 bg-surface-container-lowest rounded-2xl border border-outline-variant/20 p-6 flex flex-col justify-between">
+        {/* ─── QUICK ACTIONS PANEL ───────────────────────────── */}
+        <div className="col-span-12 lg:col-span-4 glass-card neon-glow hover:neon-glow-active p-6 rounded-2xl flex flex-col justify-between transition-all duration-300">
           <div>
-            <h3 className="font-quicksand text-xl font-bold text-on-surface mb-4">Quick Actions</h3>
-            <p className="text-xs text-on-surface-variant font-medium mb-6">Instantly log items or updates into the family records.</p>
+            <h3 className="font-serif text-2xl font-black text-foreground mb-2">Quick Actions</h3>
+            <p className="text-xs text-muted-foreground font-semibold mb-6 font-sans">Instantly log items or updates into the family records.</p>
             
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3">
               <Link
                 href="/tasks"
-                className="w-full flex items-center justify-between p-4 rounded-xl bg-primary text-on-primary hover:opacity-95 active:scale-[0.98] transition-all font-bold text-sm shadow-sm"
+                className="w-full flex items-center justify-between p-4 rounded-xl bg-primary text-primary-foreground hover:opacity-95 hover:-translate-y-0.5 active:scale-[0.98] transition-all font-bold text-sm shadow-sm font-sans group/act"
               >
                 <span className="flex items-center gap-3">
-                  <CheckSquare className="h-4.5 w-4.5" />
+                  <CheckSquare className="h-4.5 w-4.5 group-hover/act:rotate-6 transition-transform" />
                   Add New Task
                 </span>
                 <Plus className="h-4 w-4" />
@@ -440,10 +552,10 @@ export default function NewDashboardPage() {
               
               <Link
                 href="/calendar"
-                className="w-full flex items-center justify-between p-4 rounded-xl bg-tertiary text-on-tertiary hover:opacity-95 active:scale-[0.98] transition-all font-bold text-sm shadow-sm"
+                className="w-full flex items-center justify-between p-4 rounded-xl bg-tertiary text-tertiary-foreground hover:opacity-95 hover:-translate-y-0.5 active:scale-[0.98] transition-all font-bold text-sm shadow-sm font-sans group/act"
               >
                 <span className="flex items-center gap-3">
-                  <CalendarDays className="h-4.5 w-4.5" />
+                  <CalendarDays className="h-4.5 w-4.5 group-hover/act:rotate-6 transition-transform" />
                   Schedule Event
                 </span>
                 <Plus className="h-4 w-4" />
@@ -451,10 +563,10 @@ export default function NewDashboardPage() {
 
               <Link
                 href="/expenses"
-                className="w-full flex items-center justify-between p-4 rounded-xl bg-secondary text-on-secondary hover:opacity-95 active:scale-[0.98] transition-all font-bold text-sm shadow-sm"
+                className="w-full flex items-center justify-between p-4 rounded-xl bg-accent text-accent-foreground hover:opacity-95 hover:-translate-y-0.5 active:scale-[0.98] transition-all font-bold text-sm border border-border shadow-sm font-sans group/act"
               >
                 <span className="flex items-center gap-3">
-                  <TrendingUp className="h-4.5 w-4.5" />
+                  <TrendingUp className="h-4.5 w-4.5 group-hover/act:rotate-6 transition-transform" />
                   Log Expense
                 </span>
                 <Plus className="h-4 w-4" />
@@ -462,126 +574,145 @@ export default function NewDashboardPage() {
             </div>
           </div>
 
-          <div className="mt-8 pt-4 border-t border-outline-variant/20">
-            <h4 className="font-quicksand text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Household Status</h4>
-            <div className="flex items-center justify-between text-xs font-semibold text-on-surface-variant">
-              <span>Next Service Due</span>
-              <span className="text-primary font-bold">Checking...</span>
+          <div className="mt-8 pt-4 border-t border-border">
+            <h4 className="font-serif text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">Household Status</h4>
+            <div className="flex items-center justify-between text-xs font-bold text-foreground font-sans">
+              <span className="text-muted-foreground">Next Service Due</span>
+              <span className="text-primary font-extrabold flex items-center gap-1">
+                <span className="h-2 w-2 rounded-full bg-primary animate-ping" />
+                Checking...
+              </span>
             </div>
           </div>
         </div>
 
-      </div>
-
-      {/* ─── BOTTOM BLOCK: SPENDING TREND + PENDING TASKS ─────── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
-        {/* Spending Trend Chart */}
-        <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant/20 p-6 flex flex-col justify-between">
+        {/* ─── SPENDING TREND CHART ───────────────────────────── */}
+        <div className="col-span-12 md:col-span-6 glass-card neon-glow hover:neon-glow-active p-6 rounded-2xl flex flex-col justify-between transition-all duration-300">
           <div>
             <div className="flex justify-between items-center mb-1">
-              <h3 className="font-quicksand text-lg font-bold text-on-surface">Weekly Spending</h3>
-              <TrendingUp className="h-5 w-5 text-secondary opacity-60" />
+              <h3 className="font-serif text-2xl font-black text-foreground">Weekly Spending</h3>
+              <TrendingUp className="h-5 w-5 text-chart-2 opacity-80" />
             </div>
-            <p className="text-xs text-on-surface-variant font-medium">Summary of the last 7 days of transactions.</p>
+            <p className="text-xs text-muted-foreground font-semibold font-sans">Summary of the last 7 days of transactions.</p>
           </div>
 
           <div className="my-6 py-2">
-            <Sparkline data={data.expenseSparkline} color="#a53b29" height={90} />
+            <Sparkline data={data.expenseSparkline} color="var(--color-chart-2)" height={90} />
           </div>
 
-          <div className="flex justify-between items-center border-t border-outline-variant/15 pt-4">
-            <span className="text-xs text-on-surface-variant font-bold">
+          <div className="flex justify-between items-center border-t border-border pt-4 font-sans">
+            <span className="text-xs text-muted-foreground font-bold">
               {new Date(Date.now() - 6 * 86400000).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
             </span>
-            <span className="text-xs text-on-surface-variant font-bold">Today</span>
-            <Link href="/expenses" className="text-xs font-bold text-secondary hover:underline flex items-center gap-1 uppercase tracking-wider">
+            <span className="text-xs text-muted-foreground font-bold">Today</span>
+            <Link href="/expenses" className="text-xs font-extrabold text-chart-2 hover:text-chart-2/80 transition-colors flex items-center gap-1 uppercase tracking-wider">
               Manage <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
         </div>
 
-        {/* Pending Tasks / Chores */}
-        <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant/20 p-6 flex flex-col justify-between">
+        {/* ─── PENDING TASKS / CHORES ─────────────────────────── */}
+        <div className="col-span-12 md:col-span-6 glass-card neon-glow hover:neon-glow-active p-6 rounded-2xl flex flex-col justify-between transition-all duration-300">
           <div>
             <div className="flex justify-between items-center mb-1">
-              <h3 className="font-quicksand text-lg font-bold text-on-surface">Pending Tasks</h3>
-              <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${overdueTasks.length > 0 ? "bg-rose-500/10 text-rose-700" : "bg-amber-500/10 text-amber-700"}`}>
+              <div className="flex items-center gap-2.5">
+                <h3 className="font-serif text-2xl font-black text-foreground">Pending Tasks</h3>
+                {taskFilter !== "all" && (
+                  <span 
+                    onClick={() => setTaskFilter("all")}
+                    className="text-[10px] font-black uppercase px-2.5 py-0.5 bg-primary/10 text-primary rounded-md border border-primary/20 cursor-pointer hover:bg-primary/20 transition-colors flex items-center gap-1 font-sans"
+                    title="Click to clear filter"
+                  >
+                    Active Only ✕
+                  </span>
+                )}
+              </div>
+              <span className={`text-[11px] font-bold px-3 py-1 rounded-full font-sans tracking-wide ${overdueTasks.length > 0 ? "bg-destructive/10 text-destructive border border-destructive/20 animate-pulse" : "bg-chart-3/15 text-chart-3"}`}>
                 {data.openTasks} active
               </span>
             </div>
-            <p className="text-xs text-on-surface-variant font-medium">Assigned household chores and schedules.</p>
+            <p className="text-xs text-muted-foreground font-semibold font-sans">Assigned household chores and schedules.</p>
           </div>
 
-          <div className="my-4 space-y-2 flex-grow">
-            {data.recentTasks.length === 0 ? (
-              <div className="py-8 flex flex-col items-center justify-center text-center text-on-surface-variant/40">
-                <CheckSquare className="h-8 w-8 mb-2 stroke-[1.5] text-on-surface-variant/30" />
-                <p className="text-xs font-semibold">All chores completed!</p>
-              </div>
-            ) : (
-              data.recentTasks.map((task) => {
+          <div className="my-4 space-y-2.5 flex-grow">
+            {(() => {
+              const filteredTasks = data.recentTasks.filter((task) => {
+                if (taskFilter === "all") return true;
+                if (taskFilter === "active") return task.status !== "completed";
+                return true;
+              });
+
+              if (filteredTasks.length === 0) {
+                return (
+                  <div className="py-8 flex flex-col items-center justify-center text-center text-muted-foreground/50">
+                    <CheckSquare className="h-8 w-8 mb-2 stroke-[1.5] text-primary/40 animate-bounce" />
+                    <p className="text-xs font-bold font-sans">No tasks match this filter</p>
+                  </div>
+                );
+              }
+
+              return filteredTasks.map((task) => {
                 const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "completed";
                 const statusKey = isOverdue ? "overdue" : task.status;
                 const sty = STATUS_STYLE[statusKey] ?? STATUS_STYLE.pending;
                 return (
-                  <div key={task.id} className="flex gap-3 items-center p-2.5 rounded-xl border border-outline-variant/15 hover:border-primary/30 transition-all">
-                    <div className={`shrink-0 w-2.5 h-2.5 rounded-full ${isOverdue ? "bg-rose-500 animate-pulse" : task.status === "in_progress" ? "bg-blue-500" : "bg-amber-500"}`} />
+                  <div key={task.id} className="flex gap-3.5 items-center p-3 rounded-xl border border-border hover:border-primary/30 hover:bg-muted/30 transition-all duration-200 group/task">
+                    <div className={`shrink-0 w-2.5 h-2.5 rounded-full ${isOverdue ? "bg-destructive animate-pulse shadow-[0_0_8px_var(--color-destructive)]" : task.status === "in_progress" ? "bg-chart-1" : "bg-chart-3"}`} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-on-surface truncate">{task.title}</p>
+                      <p className="text-xs font-bold text-foreground truncate group-hover/task:text-primary transition-colors font-sans">{task.title}</p>
                       {task.due_date && (
-                        <p className={`text-[10px] font-semibold mt-0.5 flex items-center gap-1 ${isOverdue ? "text-rose-600 font-bold" : "text-on-surface-variant/60"}`}>
+                        <p className={`text-[10px] font-bold mt-0.5 flex items-center gap-1 font-sans ${isOverdue ? "text-destructive" : "text-muted-foreground"}`}>
                           Due {new Date(task.due_date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
                         </p>
                       )}
                     </div>
-                    <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full border border-current/10 ${sty.bg} ${sty.text}`}>
+                    <span className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full border border-current/10 font-sans tracking-wider ${sty.bg} ${sty.text}`}>
                       {isOverdue ? "overdue" : task.status.replace("_", " ")}
                     </span>
                   </div>
                 );
-              })
-            )}
+              });
+            })()}
           </div>
 
-          <div className="border-t border-outline-variant/15 pt-4 flex justify-between items-center">
-            <span className="text-xs text-on-surface-variant/60 font-semibold">Total: {data.openTasks} tasks pending</span>
-            <Link href="/tasks" className="text-xs font-bold text-primary hover:underline flex items-center gap-1 uppercase tracking-wider">
+          <div className="border-t border-border pt-4 flex justify-between items-center font-sans">
+            <span className="text-xs text-muted-foreground font-bold">Total: {data.openTasks} tasks pending</span>
+            <Link href="/tasks" className="text-xs font-extrabold text-primary hover:text-primary/80 transition-colors flex items-center gap-1 uppercase tracking-wider">
               Work Board <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
         </div>
 
-      </div>
-
-      {/* ─── DYNAMIC UTILITY TILES ──────────────────────────── */}
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* ─── DYNAMIC UTILITY TILES ──────────────────────────── */}
         {[
-          { icon: Wrench, label: "Maintenance", desc: "Service assets", href: "/maintenance", color: "text-blue-600", bg: "from-blue-500/10 to-transparent" },
-          { icon: CreditCard, label: "Subscriptions", desc: "Recurring plans", href: "/subscriptions", color: "text-purple-600", bg: "from-purple-500/10 to-transparent" },
-          { icon: Plane, label: "Holiday Planner", desc: "Trips & packing", href: "/holiday", color: "text-amber-600", bg: "from-amber-500/10 to-transparent" },
-          { icon: FileText, label: "Documents", desc: "Family archives", href: "/documents", color: "text-emerald-600", bg: "from-emerald-500/10 to-transparent" },
+          { icon: Wrench, label: "Maintenance", desc: "Service assets", href: "/maintenance", color: "text-chart-1", bg: "from-chart-1/10 to-transparent", hoverBorder: "hover:border-chart-1/40" },
+          { icon: CreditCard, label: "Subscriptions", desc: "Recurring plans", href: "/subscriptions", color: "text-chart-2", bg: "from-chart-2/10 to-transparent", hoverBorder: "hover:border-chart-2/40" },
+          { icon: Plane, label: "Holiday Planner", desc: "Trips & packing", href: "/holiday", color: "text-chart-3", bg: "from-chart-3/10 to-transparent", hoverBorder: "hover:border-chart-3/40" },
+          { icon: FileText, label: "Documents", desc: "Family archives", href: "/documents", color: "text-chart-4", bg: "from-chart-4/10 to-transparent", hoverBorder: "hover:border-chart-4/40" },
         ].map((link, idx) => {
           const Icon = link.icon;
           return (
             <Link
               key={idx}
               href={link.href}
-              className={`bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/20 flex flex-col gap-3 group bg-gradient-to-br ${link.bg} transition-all duration-200 active:scale-[0.98] hover:border-outline-variant/40`}
+              className={`col-span-6 md:col-span-3 glass-card neon-glow hover:neon-glow-active p-5 rounded-2xl border border-border flex flex-col justify-between group bg-gradient-to-br ${link.bg} transition-all duration-300 ease-out active:scale-[0.98] hover:-translate-y-1.5 hover:scale-[1.03] ${link.hoverBorder}`}
             >
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center bg-white border border-outline-variant/10 shadow-xs ${link.color}`}>
-                <Icon className="h-4.5 w-4.5" />
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-card border border-border shadow-sm transition-transform duration-300 group-hover:scale-110 ${link.color}`}>
+                <Icon className="h-5 w-5" />
               </div>
-              <div>
-                <p className="text-xs font-bold text-on-surface group-hover:text-primary transition-colors">{link.label}</p>
-                <p className="text-[10px] text-on-surface-variant/70 font-semibold mt-0.5">{link.desc}</p>
+              <div className="mt-4">
+                <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors font-sans">{link.label}</p>
+                <p className="text-[11px] text-muted-foreground font-semibold mt-1 font-sans leading-tight">{link.desc}</p>
               </div>
-              <ArrowRight className="h-3.5 w-3.5 text-on-surface-variant/30 group-hover:text-primary group-hover:translate-x-0.5 transition-all mt-auto self-end" />
+              <div className="flex justify-between items-center mt-4 pt-2 border-t border-border/10">
+                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-primary transition-colors font-sans">Open</span>
+                <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+              </div>
             </Link>
           );
         })}
-      </section>
 
+      </div>
     </div>
   );
 }

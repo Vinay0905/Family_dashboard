@@ -504,7 +504,7 @@ export default function MaintenancePage() {
     if (!asset.next_due_date) {
       return {
         label: "No Due Date",
-        color: "bg-slate-500/10 text-slate-500 border-slate-500/20",
+        color: "bg-slate-500/10 text-slate-500 border-slate-500/20 dark:text-slate-400",
         dotColor: "bg-slate-400",
         badgeColor: "bg-slate-500 text-white",
         code: "grey",
@@ -514,9 +514,9 @@ export default function MaintenancePage() {
     if (asset.next_due_date < today) {
       return {
         label: "Overdue",
-        color: "bg-error-container/10 text-error border-error-container/20",
+        color: "bg-error/10 text-error border-error/20",
         dotColor: "bg-error",
-        badgeColor: "bg-error text-on-error",
+        badgeColor: "bg-error-container text-on-error-container",
         code: "red",
       };
     }
@@ -528,18 +528,18 @@ export default function MaintenancePage() {
     if (asset.next_due_date <= thirtyDaysLaterStr) {
       return {
         label: "Due Soon",
-        color: "bg-secondary-container/10 text-secondary border-secondary-container/20",
-        dotColor: "bg-secondary-container",
-        badgeColor: "bg-secondary-container text-on-secondary-container",
+        color: "bg-warning/10 text-warning border-warning/20",
+        dotColor: "bg-warning",
+        badgeColor: "bg-warning-container text-on-warning-container",
         code: "soon",
       };
     }
 
     return {
       label: "Healthy",
-      color: "bg-tertiary-container/10 text-tertiary border-tertiary-container/20",
-      dotColor: "bg-tertiary",
-      badgeColor: "bg-tertiary text-on-tertiary",
+      color: "bg-success/10 text-success border-success/20",
+      dotColor: "bg-success",
+      badgeColor: "bg-success-container text-on-success-container",
       code: "green",
     };
   };
@@ -610,8 +610,7 @@ export default function MaintenancePage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* ─── HERO GREETING SECTION ───────────────────────────── */}
-      <section className="bg-surface-container-lowest p-6 md:p-8 rounded-2xl border border-outline-variant/30 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
+      <section className="glass-card p-6 md:p-8 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
         {/* Soft atmospheric gradient glow matching Warmth & Order */}
         <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-gradient-to-br from-primary/10 via-secondary/5 to-transparent blur-3xl pointer-events-none" />
 
@@ -620,7 +619,7 @@ export default function MaintenancePage() {
             <Wrench className="h-3.5 w-3.5 text-primary" />
             <span>Home Integrity & Care</span>
           </div>
-          <h2 className="font-quicksand text-3xl md:text-4xl font-extrabold text-on-surface tracking-tight">
+          <h2 className="font-serif text-3xl md:text-4xl font-extrabold text-on-surface tracking-tight">
             Maintenance Tracker
           </h2>
           <p className="text-sm text-on-surface-variant font-medium">
@@ -647,11 +646,11 @@ export default function MaintenancePage() {
       {/* ─── OVERDUE URGENT ALERT BANNER ────────────────────── */}
       {overdueCount > 0 && (
         <section className="rounded-2xl bg-error-container/10 border border-error-container/20 p-5 flex items-start gap-4 shadow-xs">
-          <div className="bg-error-container/20 p-2.5 rounded-full text-error shrink-0">
-            <AlertTriangle className="h-5 w-5 animate-bounce" />
+          <div className="bg-error-container/20 p-2.5 rounded-full text-error shrink-0 animate-bounce">
+            <AlertTriangle className="h-5 w-5" />
           </div>
           <div className="space-y-1">
-            <span className="font-quicksand text-sm font-bold uppercase tracking-wider text-error">
+            <span className="font-serif text-sm font-bold uppercase tracking-wider text-error">
               Immediate Care Recommended
             </span>
             <p className="text-xs text-on-surface-variant leading-relaxed">
@@ -680,15 +679,15 @@ export default function MaintenancePage() {
             label: "Due Soon",
             value: dueSoonCount,
             desc: "needs attention in 30d",
-            border: "border-l-4 border-secondary-container",
-            valColor: "text-secondary-container",
+            border: "border-l-4 border-warning",
+            valColor: "text-warning",
           },
           {
             label: "Healthy",
             value: healthyCount,
             desc: "schedule in order",
-            border: "border-l-4 border-tertiary",
-            valColor: "text-tertiary",
+            border: "border-l-4 border-success",
+            valColor: "text-success",
           },
           {
             label: "Total Systems",
@@ -700,13 +699,15 @@ export default function MaintenancePage() {
         ].map((card, idx) => (
           <div
             key={idx}
-            className={`bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/20 shadow-xs flex flex-col justify-between ${card.border}`}
+            className={`glass-card p-5 rounded-2xl flex flex-col justify-between ${card.border} ${
+              card.label === "Overdue" && card.value > 0 ? "neon-glow-active" : ""
+            }`}
           >
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/40">
                 {card.label}
               </span>
-              <h3 className={`font-quicksand text-3xl font-bold mt-1 ${card.valColor}`}>
+              <h3 className={`font-serif text-3xl font-bold mt-1 ${card.valColor}`}>
                 {card.value} {card.value === 1 ? "Asset" : "Assets"}
               </h3>
             </div>
@@ -724,7 +725,7 @@ export default function MaintenancePage() {
         <div className="lg:col-span-8 space-y-6">
           
           {/* SEARCH, FILTERS & VIEW MODE CONTROL PANEL */}
-          <section className="bg-surface-container-lowest rounded-2xl border border-outline-variant/20 p-4 shadow-xs flex flex-col sm:flex-row gap-4 items-center justify-between">
+          <section className="glass-card rounded-2xl p-4 flex flex-col sm:flex-row gap-4 items-center justify-between">
             {/* Search Input */}
             <div className="relative w-full sm:max-w-xs">
               <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-on-surface-variant/50" />
@@ -732,7 +733,7 @@ export default function MaintenancePage() {
                 placeholder="Search systems, vendors..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9.5 bg-surface-container-low border-outline-variant/30 rounded-xl text-xs h-9 focus-visible:ring-primary/20"
+                className="pl-9.5 bg-surface-container-low border border-outline-variant/10 rounded-xl text-xs h-9 focus-visible:ring-primary/20"
               />
             </div>
 
@@ -796,7 +797,7 @@ export default function MaintenancePage() {
             </div>
           ) : viewMode === "grid" ? (
             /* VIEW MODE: CARDS GRID */
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredAssets.map((asset) => {
                 const status = getAssetStatusInfo(asset);
                 const Icon = getAssetIcon(asset.name);
@@ -805,7 +806,9 @@ export default function MaintenancePage() {
                 return (
                   <div
                     key={asset.id}
-                    className={`bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden flex flex-col hover:shadow-md transition-all duration-300 group`}
+                    className={`glass-card rounded-2xl overflow-hidden flex flex-col hover:shadow-md transition-all duration-300 group ${
+                      status.code === "red" ? "neon-glow-active border border-error/30" : ""
+                    }`}
                   >
                     {/* Header Image Cover */}
                     <div className="relative h-40 bg-surface-container">
@@ -821,13 +824,13 @@ export default function MaintenancePage() {
                         {status.label}
                       </span>
                     </div>
-
+ 
                     {/* Card Content Body */}
                     <div className="p-5 flex flex-col flex-grow">
                       {/* Name & Custom Category Icon */}
                       <div className="flex justify-between items-start mb-4">
                         <div>
-                          <h4 className="font-quicksand text-lg font-bold text-on-surface group-hover:text-primary transition-colors leading-tight">
+                          <h4 className="font-serif text-lg font-bold text-on-surface group-hover:text-primary transition-colors leading-tight">
                             {asset.name}
                           </h4>
                           {asset.vendor && (
@@ -867,8 +870,8 @@ export default function MaintenancePage() {
                               status.code === "red"
                                 ? "text-error"
                                 : status.code === "soon"
-                                ? "text-secondary"
-                                : "text-tertiary"
+                                ? "text-warning"
+                                : "text-success"
                             }`}
                           >
                             {asset.next_due_date
@@ -914,10 +917,12 @@ export default function MaintenancePage() {
                 onClick={handleOpenCreateModal}
                 className="border-2 border-dashed border-outline-variant/50 rounded-2xl flex flex-col items-center justify-center p-6 min-h-[360px] group cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
               >
-                <div className="w-14 h-14 rounded-full bg-surface-container flex items-center justify-center mb-4 group-hover:bg-primary/10 transition-colors duration-300 text-on-surface-variant/50 group-hover:text-primary">
+                <div
+                  className="w-14 h-14 rounded-full bg-surface-container flex items-center justify-center mb-4 group-hover:bg-primary/10 transition-colors duration-300 text-on-surface-variant/50 group-hover:text-primary"
+                >
                   <Plus className="h-6 w-6 stroke-[2.25]" />
                 </div>
-                <span className="font-quicksand text-base font-bold text-on-surface-variant group-hover:text-primary transition-colors">
+                <span className="font-serif text-base font-bold text-on-surface-variant group-hover:text-primary transition-colors">
                   Register New System
                 </span>
                 <p className="text-[11px] font-medium text-on-surface-variant/50 text-center mt-1.5 px-6 leading-relaxed">
@@ -928,7 +933,7 @@ export default function MaintenancePage() {
             </div>
           ) : (
             /* VIEW MODE: COMPACT TABLE LIST */
-            <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant/20 overflow-hidden shadow-xs">
+            <div className="glass-card rounded-2xl overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
@@ -953,14 +958,13 @@ export default function MaintenancePage() {
                   <tbody className="divide-y divide-outline-variant/15">
                     {filteredAssets.map((asset) => {
                       const status = getAssetStatusInfo(asset);
-
                       return (
                         <tr
                           key={asset.id}
-                          className="hover:bg-primary/[0.02] transition-colors"
+                          className="border-b border-outline-variant/10 hover:bg-surface-container-low/40 transition-colors"
                         >
                           {/* Name */}
-                          <td className="p-4 pl-5 font-quicksand font-bold text-on-surface text-sm">
+                          <td className="p-4 pl-5 font-serif font-bold text-on-surface text-sm">
                             {asset.name}
                           </td>
                           {/* Last Service */}
@@ -1055,9 +1059,9 @@ export default function MaintenancePage() {
         <div className="lg:col-span-4 space-y-6">
           
           {/* RECENT ACTIVITY TIMELINE */}
-          <div className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/20 shadow-xs">
+          <div className="glass-card p-6 rounded-2xl">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="font-quicksand text-lg font-bold text-primary flex items-center gap-2">
+              <h3 className="font-serif text-lg font-bold text-primary flex items-center gap-2">
                 <Activity className="h-4.5 w-4.5 text-primary" /> Recent Activities
               </h3>
             </div>
@@ -1084,7 +1088,7 @@ export default function MaintenancePage() {
                       <Icon className="h-3.5 w-3.5 font-bold" />
                     </div>
                     <div>
-                      <p className="font-quicksand text-sm font-bold text-on-surface leading-tight">
+                      <p className="font-serif text-sm font-bold text-on-surface leading-tight">
                         {act.title}
                       </p>
                       <p className="text-[10px] text-on-surface-variant font-medium mt-0.5">
@@ -1157,7 +1161,7 @@ export default function MaintenancePage() {
           >
             {/* Modal Title */}
             <div className="flex items-center justify-between pb-3 border-b border-outline-variant/20">
-              <h3 className="font-quicksand text-lg font-bold text-primary flex items-center gap-2">
+              <h3 className="font-serif text-lg font-bold text-primary flex items-center gap-2">
                 <Wrench className="h-5 w-5" />
                 {modalMode === "create" ? "Register New System" : "Record System Maintenance"}
               </h3>

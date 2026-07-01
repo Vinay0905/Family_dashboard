@@ -549,23 +549,23 @@ export default function NewHolidayPage() {
     if (today > plan.end_date) {
       return {
         label: "Completed",
-        color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
-        dotColor: "bg-emerald-500",
+        color: "bg-emerald-500/10 dark:bg-emerald-400/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/20 dark:border-emerald-900/30",
+        dotColor: "bg-emerald-500 dark:bg-emerald-400",
         code: "green"
       };
     }
     if (today >= plan.start_date && today <= plan.end_date) {
       return {
         label: "In Progress",
-        color: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-        dotColor: "bg-amber-500",
+        color: "bg-amber-500/10 dark:bg-amber-400/15 text-amber-700 dark:text-amber-300 border-amber-500/20 dark:border-amber-900/30",
+        dotColor: "bg-amber-500 dark:bg-amber-400",
         code: "yellow"
       };
     }
     return {
       label: "Upcoming",
-      color: "bg-slate-500/10 text-slate-400 border-slate-500/20",
-      dotColor: "bg-slate-400",
+      color: "bg-slate-500/10 dark:bg-slate-400/15 text-slate-600 dark:text-slate-300 border-slate-500/20 dark:border-slate-800/30",
+      dotColor: "bg-slate-400 dark:bg-slate-500",
       code: "grey"
     };
   };
@@ -625,15 +625,15 @@ export default function NewHolidayPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto font-sans">
       {/* HEADER SECTION */}
-      <section className="bg-surface-container-lowest p-6 md:p-8 rounded-2xl border border-outline-variant/30 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-gradient-to-br from-primary/10 via-secondary/5 to-transparent blur-3xl pointer-events-none" />
+      <section className="glass-card p-6 md:p-8 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-gradient-to-br from-primary/5 via-secondary/5 to-transparent blur-3xl pointer-events-none" />
         
         <div className="relative z-10 space-y-1">
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-on-surface-variant/80">
             <span>{greeting.emoji}</span>
             <span>{greeting.text}</span>
           </div>
-          <h2 className="font-quicksand text-3xl md:text-4xl font-extrabold text-on-surface tracking-tight">
+          <h2 className="font-serif text-3xl md:text-4xl font-extrabold text-on-surface tracking-tight">
             Holiday <span className="text-primary italic">Planner</span>
           </h2>
           <p className="text-sm text-on-surface-variant font-medium">
@@ -655,9 +655,9 @@ export default function NewHolidayPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         {/* LEFT COLUMN: LIST OF PLANS (col-span-4) */}
-        <section className="lg:col-span-4 bg-surface-container-lowest rounded-2xl p-5 border border-outline-variant/30 shadow-sm space-y-4">
+        <section className="lg:col-span-4 glass-card rounded-2xl p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-quicksand text-lg font-bold text-on-surface">Family Adventures</h3>
+            <h3 className="font-serif text-lg font-bold text-on-surface">Family Adventures</h3>
             <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
               {plans.length} total
             </span>
@@ -689,7 +689,11 @@ export default function NewHolidayPage() {
 
               <button
                 onClick={() => toggleSort("start_date")}
-                className="h-9 w-9 rounded-xl border border-outline-variant/60 bg-surface-container-low hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant/80 active:scale-95 transition-all"
+                className={`h-9 w-9 rounded-xl border flex items-center justify-center active:scale-95 transition-all ${
+                  sortField === "start_date"
+                    ? "bg-primary text-on-primary border-primary shadow-sm"
+                    : "border-outline-variant/60 bg-surface-container-low hover:bg-surface-container-high text-on-surface-variant/80"
+                }`}
                 title="Sort by Dates"
               >
                 <Calendar className="h-4 w-4" />
@@ -697,7 +701,11 @@ export default function NewHolidayPage() {
 
               <button
                 onClick={() => toggleSort("budget")}
-                className="h-9 w-9 rounded-xl border border-outline-variant/60 bg-surface-container-low hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant/80 active:scale-95 transition-all"
+                className={`h-9 w-9 rounded-xl border flex items-center justify-center active:scale-95 transition-all ${
+                  sortField === "budget"
+                    ? "bg-primary text-on-primary border-primary shadow-sm"
+                    : "border-outline-variant/60 bg-surface-container-low hover:bg-surface-container-high text-on-surface-variant/80"
+                }`}
                 title="Sort by Budget"
               >
                 <Wallet className="h-4 w-4" />
@@ -725,13 +733,13 @@ export default function NewHolidayPage() {
                     onClick={() => setActivePlanId(plan.id)}
                     className={`p-3.5 rounded-xl border text-left cursor-pointer transition-all duration-200 active:scale-[0.99] flex flex-col justify-between gap-2 shadow-xs ${
                       isActive
-                        ? "bg-primary-container/10 border-primary shadow-sm"
+                        ? "bg-primary/10 border-primary shadow-sm"
                         : "bg-surface hover:bg-surface-container-low border-outline-variant/20"
                     }`}
                   >
                     <div className="flex justify-between items-start gap-2">
                       <div>
-                        <h4 className={`font-quicksand font-bold text-sm ${isActive ? "text-primary" : "text-on-surface"}`}>
+                        <h4 className={`font-serif font-bold text-sm ${isActive ? "text-primary" : "text-on-surface"}`}>
                           {plan.destination}
                         </h4>
                         <p className="text-[10.5px] text-on-surface-variant/80 font-semibold mt-0.5 flex items-center gap-1">
@@ -765,10 +773,10 @@ export default function NewHolidayPage() {
         <section className="lg:col-span-8 space-y-6">
           
           {!activePlan ? (
-            <div className="bg-surface-container-lowest rounded-2xl p-16 border border-outline-variant/30 text-center flex flex-col items-center justify-center gap-4">
+            <div className="glass-card rounded-2xl p-16 border border-outline-variant/30 text-center flex flex-col items-center justify-center gap-4">
               <Luggage className="h-16 w-16 text-on-surface-variant/30 stroke-[1.2]" />
               <div className="space-y-1">
-                <h4 className="font-quicksand font-bold text-lg text-on-surface">No Adventures Planned Yet</h4>
+                <h4 className="font-serif font-bold text-lg text-on-surface">No Adventures Planned Yet</h4>
                 <p className="text-sm text-on-surface-variant max-w-sm">
                   Get your family getaways organized! Start by clicking &quot;Plan New Trip&quot; to register your next holiday.
                 </p>
@@ -783,13 +791,13 @@ export default function NewHolidayPage() {
           ) : (
             <>
               {/* Plan Header Card */}
-              <div className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/30 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="glass-card p-6 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                   <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider mb-1.5">
                     <Plane className="h-4 w-4 shrink-0" />
                     <span>Holiday Details & Itinerary</span>
                   </div>
-                  <h3 className="font-quicksand text-2xl font-extrabold text-on-surface">
+                  <h3 className="font-serif text-2xl font-extrabold text-on-surface">
                     {activePlan.destination}
                   </h3>
                   <p className="text-xs text-on-surface-variant font-semibold mt-1">
@@ -821,7 +829,7 @@ export default function NewHolidayPage() {
               <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                 
                 {/* Hero image and weather card (col-span-8) */}
-                <div className="md:col-span-8 bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-sm overflow-hidden relative group">
+                <div className="md:col-span-8 glass-card rounded-2xl border border-outline-variant/30 shadow-sm overflow-hidden relative group">
                   <div 
                     className="absolute inset-0 z-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
                     style={{ backgroundImage: `url('${getDestinationInfo(activePlan.destination).image}')` }}
@@ -835,7 +843,7 @@ export default function NewHolidayPage() {
                         <span className="bg-secondary text-on-secondary px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider mb-2 inline-block">
                           Active Destination
                         </span>
-                        <h4 className="font-quicksand text-xl font-bold">{activePlan.destination}</h4>
+                        <h4 className="font-serif text-xl font-bold">{activePlan.destination}</h4>
                         <div className="flex items-center gap-3 mt-1 text-[11px] font-medium text-white/90">
                           <span className="flex items-center gap-1"><CloudSun className="h-3.5 w-3.5" /> {getDestinationInfo(activePlan.destination).weather}</span>
                           <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {getDestinationInfo(activePlan.destination).timezone}</span>
@@ -855,9 +863,9 @@ export default function NewHolidayPage() {
                 </div>
 
                 {/* Progress Stats summary card (col-span-4) */}
-                <div className="md:col-span-4 bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/30 shadow-sm flex flex-col justify-between">
+                <div className="md:col-span-4 glass-card p-5 rounded-2xl flex flex-col justify-between">
                   <div className="space-y-4">
-                    <h4 className="font-quicksand text-sm font-bold text-on-surface uppercase tracking-wider">
+                    <h4 className="font-serif text-sm font-bold text-on-surface uppercase tracking-wider">
                       Trip Overview
                     </h4>
                     
@@ -874,7 +882,7 @@ export default function NewHolidayPage() {
 
                       <div>
                         <p className="text-[10px] text-on-surface-variant font-bold uppercase">Budget estimate</p>
-                        <p className="text-lg font-bold font-quicksand text-primary mt-0.5">
+                        <p className="text-lg font-bold font-serif text-primary mt-0.5">
                           {activePlan.budget_estimate ? `₹${Number(activePlan.budget_estimate).toLocaleString("en-IN")}` : "N/A"}
                         </p>
                       </div>
@@ -891,7 +899,7 @@ export default function NewHolidayPage() {
                   {activePlan.budget_estimate && (
                     <button
                       onClick={() => handleLogExpense(activePlan)}
-                      className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-primary/10 hover:bg-primary text-primary hover:text-white border border-primary/20 hover:border-transparent text-xs font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer active:scale-95 shadow-2xs mt-4"
+                      className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-primary/10 hover:bg-primary text-primary hover:text-on-primary border border-primary/20 hover:border-transparent text-xs font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer active:scale-95 shadow-2xs mt-4"
                       title="Log Budget as Travel Expense"
                     >
                       <CheckCircle2 className="h-4.5 w-4.5" /> Log Budget Exp
@@ -900,9 +908,9 @@ export default function NewHolidayPage() {
                 </div>
 
                 {/* Budget Estimator / Tracker Card (col-span-8) */}
-                <div className="md:col-span-8 bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/30 shadow-sm space-y-4">
+                <div className="md:col-span-8 glass-card p-5 rounded-2xl space-y-4">
                   <div className="flex justify-between items-center">
-                    <h4 className="font-quicksand text-base font-bold text-on-surface flex items-center gap-1.5">
+                    <h4 className="font-serif text-base font-bold text-on-surface flex items-center gap-1.5">
                       <Wallet className="h-4.5 w-4.5 text-primary" /> Budget Tracker
                     </h4>
                     <span className="text-xs font-bold text-on-surface-variant/80">
@@ -942,20 +950,20 @@ export default function NewHolidayPage() {
 
                   {/* Proportional breakdown cards */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="p-2.5 rounded-xl bg-blue-50/70 border border-blue-100 flex flex-col justify-between">
-                      <span className="text-[9.5px] font-bold text-blue-800 uppercase">Flights (30%)</span>
+                    <div className="p-2.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 flex flex-col justify-between">
+                      <span className="text-[9.5px] font-bold text-blue-800 dark:text-blue-300 uppercase">Flights (30%)</span>
                       <span className="text-xs font-bold text-on-surface mt-1">₹{Math.round(budgetBreakdown.flights).toLocaleString("en-IN")}</span>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-100 flex flex-col justify-between">
-                      <span className="text-[9.5px] font-bold text-emerald-800 uppercase">Stay (45%)</span>
+                    <div className="p-2.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 flex flex-col justify-between">
+                      <span className="text-[9.5px] font-bold text-emerald-800 dark:text-emerald-300 uppercase">Stay (45%)</span>
                       <span className="text-xs font-bold text-on-surface mt-1">₹{Math.round(budgetBreakdown.stay).toLocaleString("en-IN")}</span>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-100 flex flex-col justify-between">
-                      <span className="text-[9.5px] font-bold text-amber-800 uppercase">Food (15%)</span>
+                    <div className="p-2.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 flex flex-col justify-between">
+                      <span className="text-[9.5px] font-bold text-amber-800 dark:text-amber-300 uppercase">Food (15%)</span>
                       <span className="text-xs font-bold text-on-surface mt-1">₹{Math.round(budgetBreakdown.food).toLocaleString("en-IN")}</span>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
-                      <span className="text-[9.5px] font-bold text-slate-800 uppercase">Other (10%)</span>
+                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/20 border border-slate-100 dark:border-slate-800/30 flex flex-col justify-between">
+                      <span className="text-[9.5px] font-bold text-slate-800 dark:text-slate-300 uppercase">Other (10%)</span>
                       <span className="text-xs font-bold text-on-surface mt-1">₹{Math.round(budgetBreakdown.other).toLocaleString("en-IN")}</span>
                     </div>
                   </div>
@@ -976,9 +984,9 @@ export default function NewHolidayPage() {
                 </div>
 
                 {/* Packing List Card (col-span-4 - moves into grid for desktop, stacks on mobile) */}
-                <div className="md:col-span-4 bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/30 shadow-sm flex flex-col space-y-4">
+                <div className="md:col-span-4 glass-card p-5 rounded-2xl flex flex-col space-y-4">
                   <div className="flex justify-between items-center">
-                    <h4 className="font-quicksand text-base font-bold text-on-surface flex items-center gap-1.5">
+                    <h4 className="font-serif text-base font-bold text-on-surface flex items-center gap-1.5">
                       <Luggage className="h-4.5 w-4.5 text-secondary" /> Packing Checklist
                     </h4>
                     <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-full text-[9px] font-bold uppercase tracking-wider shrink-0">
@@ -1086,15 +1094,15 @@ export default function NewHolidayPage() {
                 </div>
 
                 {/* Notes & Shared Itinerary ideas (col-span-12) */}
-                <div className="col-span-12 bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/30 shadow-sm space-y-3">
+                <div className="col-span-12 glass-card p-5 space-y-3">
                   <div className="flex justify-between items-center">
-                    <h4 className="font-quicksand text-base font-bold text-on-surface flex items-center gap-1.5">
+                    <h4 className="font-serif text-base font-bold text-on-surface flex items-center gap-1.5">
                       <FileText className="h-4.5 w-4.5 text-primary" /> Trip Notes & Itinerary Ideas
                     </h4>
                     
                     <div className="flex items-center gap-1.5">
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider inline-flex items-center gap-1 ${
-                        notesStatus === "Saving..." ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
+                        notesStatus === "Saving..." ? "bg-amber-100 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300" : "bg-emerald-100 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300"
                       }`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${notesStatus === "Saving..." ? "bg-amber-500 animate-pulse" : "bg-emerald-500"}`} />
                         {notesStatus}
@@ -1125,7 +1133,7 @@ export default function NewHolidayPage() {
                     </span>
                     <button
                       onClick={() => handleDeletePlan(activePlan.id)}
-                      className="text-xs font-bold text-primary hover:text-primary-container flex items-center gap-1 active:scale-95 transition-all p-1.5 hover:bg-primary/5 rounded-xl cursor-pointer"
+                      className="text-xs font-bold text-primary hover:text-destructive hover:bg-destructive/10 flex items-center gap-1 active:scale-95 transition-all p-1.5 rounded-xl cursor-pointer"
                       title="Remove Trip Plan"
                     >
                       <Trash2 className="h-4 w-4" /> Remove Plan
@@ -1151,11 +1159,12 @@ export default function NewHolidayPage() {
 
           <form 
             onSubmit={handleCreatePlan} 
-            className="relative z-10 w-full max-w-lg bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150"
+            className="relative z-10 w-full max-w-lg glass-card border border-outline-variant/30 rounded-2xl p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150"
           >
-            <div className="flex items-center justify-between pb-3 border-b border-outline-variant/35">
-              <h3 className="font-quicksand text-lg font-bold text-primary flex items-center gap-2">
-                <Plane className="h-5 w-5 shrink-0" /> Plan New Family Trip
+            <div className="flex items-center justify-between pb-3 border-b border-outline-variant/20">
+              <h3 className="font-serif text-lg font-bold text-primary flex items-center gap-2">
+                <Luggage className="h-5 w-5" />
+                Plan New Family Trip
               </h3>
               <button 
                 type="button"
@@ -1265,11 +1274,12 @@ export default function NewHolidayPage() {
 
           <form 
             onSubmit={handleEditPlan} 
-            className="relative z-10 w-full max-w-lg bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150"
+            className="relative z-10 w-full max-w-lg glass-card border border-outline-variant/30 rounded-2xl p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150"
           >
-            <div className="flex items-center justify-between pb-3 border-b border-outline-variant/35">
-              <h3 className="font-quicksand text-lg font-bold text-primary flex items-center gap-2">
-                <Edit className="h-5 w-5 shrink-0" /> Edit Trip Details
+            <div className="flex items-center justify-between pb-3 border-b border-outline-variant/20">
+              <h3 className="font-serif text-lg font-bold text-primary flex items-center gap-2">
+                <Luggage className="h-5 w-5" />
+                Edit Family Trip Details
               </h3>
               <button 
                 type="button"
