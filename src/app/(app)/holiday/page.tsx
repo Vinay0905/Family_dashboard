@@ -23,7 +23,8 @@ import {
   Clock,
   CloudSun,
   Copy,
-  FileText
+  FileText,
+  Pencil
 } from "lucide-react";
 
 interface PackingItem {
@@ -147,8 +148,8 @@ export default function NewHolidayPage() {
   const [sortField, setSortField] = useState<"start_date" | "budget">("start_date");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
-  // Create Form State
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  // Form State
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [destination, setDestination] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -156,14 +157,7 @@ export default function NewHolidayPage() {
   const [notes, setNotes] = useState("");
   const [packingList, setPackingList] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Edit Form State
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editDestination, setEditDestination] = useState("");
-  const [editStartDate, setEditStartDate] = useState("");
-  const [editEndDate, setEditEndDate] = useState("");
-  const [editBudgetEstimate, setEditBudgetEstimate] = useState("");
-  const [editNotes, setEditNotes] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // Live updates states
   const [budgetValue, setBudgetValue] = useState<number>(0);
@@ -264,95 +258,96 @@ export default function NewHolidayPage() {
     }
   }, [activePlan]);
 
-  const handleCreatePlan = async (e: React.FormEvent) => {
+  const handleEditClick = (plan: HolidayPlan) => {
+    setDestination(plan.destination);
+    setStartDate(plan.start_date);
+    setEndDate(plan.end_date);
+    setBudgetEstimate(plan.budget_estimate ? String(plan.budget_estimate) : "");
+    setNotes(plan.notes || "");
+    setPackingList("");
+    setEditingId(plan.id);
+    setIsModalOpen(true);
+  };
+
+  const clearForm = () => {
+    setDestination("");
+    setStartDate("");
+    setEndDate("");
+    setBudgetEstimate("");
+    setNotes("");
+    setPackingList("");
+    setEditingId(null);
+  };
+
+  const handleCloseModal = () => {
+    clearForm();
+    setIsModalOpen(false);
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!destination.trim() || !startDate || !endDate || !familyId || !currentUser) return;
 
     setIsSubmitting(true);
     try {
-      const packingArray = packingList
-        ? packingList.split(",").map((s) => s.trim()).filter(Boolean).map(item => {
-            let category = "Clothing";
-            const name = item.toLowerCase();
-            if (name.includes("passport") || name.includes("ticket") || name.includes("visa") || name.includes("doc") || name.includes("insur")) {
-              category = "Essentials";
-            } else if (name.includes("charger") || name.includes("camera") || name.includes("phone") || name.includes("adapter") || name.includes("bank") || name.includes("tech")) {
-              category = "Gear & Tech";
-            }
-            return { name: item, packed: false, category };
+      if (editingId) {
+        const { data: updatedPlan, error } = await supabase
+          .from("holiday_plans")
+          .update({
+            destination: destination.trim(),
+            start_date: startDate,
+            end_date: endDate,
+            budget_estimate: budgetEstimate ? Number(budgetEstimate) : null,
+            notes: notes.trim() || null
           })
-        : [];
+          .eq("id", editingId)
+          .select()
+          .single();
 
-      const { data: newPlan, error } = await supabase
-        .from("holiday_plans")
-        .insert({
-          family_id: familyId,
-          created_by: currentUser.id,
-          destination: destination.trim(),
-          start_date: startDate,
-          end_date: endDate,
-          budget_estimate: budgetEstimate ? Number(budgetEstimate) : null,
-          notes: notes.trim() || null,
-          packing_list: packingArray
-        })
-        .select()
-        .single();
+        if (error) throw error;
 
-      if (error) throw error;
+        setPlans((prev) => prev.map((p) => (p.id === editingId ? updatedPlan : p)));
+        alert("Trip plan updated successfully!");
+        handleCloseModal();
+      } else {
+        const packingArray = packingList
+          ? packingList.split(",").map((s) => s.trim()).filter(Boolean).map(item => {
+              let category = "Clothing";
+              const name = item.toLowerCase();
+              if (name.includes("passport") || name.includes("ticket") || name.includes("visa") || name.includes("doc") || name.includes("insur")) {
+                category = "Essentials";
+              } else if (name.includes("charger") || name.includes("camera") || name.includes("phone") || name.includes("adapter") || name.includes("bank") || name.includes("tech")) {
+                category = "Gear & Tech";
+              }
+              return { name: item, packed: false, category };
+            })
+          : [];
 
-      setPlans((prev) => [...prev, newPlan]);
-      setActivePlanId(newPlan.id);
-      setDestination("");
-      setStartDate("");
-      setEndDate("");
-      setBudgetEstimate("");
-      setNotes("");
-      setPackingList("");
-      setShowCreateModal(false);
+        const { data: newPlan, error } = await supabase
+          .from("holiday_plans")
+          .insert({
+            family_id: familyId,
+            created_by: currentUser.id,
+            destination: destination.trim(),
+            start_date: startDate,
+            end_date: endDate,
+            budget_estimate: budgetEstimate ? Number(budgetEstimate) : null,
+            notes: notes.trim() || null,
+            packing_list: packingArray
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        setPlans((prev) => [...prev, newPlan]);
+        setActivePlanId(newPlan.id);
+        alert("New trip plan created successfully!");
+        handleCloseModal();
+      }
     } catch (err) {
-      console.error("Failed to create plan:", err);
-      alert("Failed to create plan.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleOpenEditModal = () => {
-    if (!activePlan) return;
-    setEditDestination(activePlan.destination);
-    setEditStartDate(activePlan.start_date);
-    setEditEndDate(activePlan.end_date);
-    setEditBudgetEstimate(activePlan.budget_estimate ? String(activePlan.budget_estimate) : "");
-    setEditNotes(activePlan.notes || "");
-    setShowEditModal(true);
-  };
-
-  const handleEditPlan = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!activePlan || !editDestination.trim() || !editStartDate || !editEndDate) return;
-
-    setIsSubmitting(true);
-    try {
-      const { data: updatedPlan, error } = await supabase
-        .from("holiday_plans")
-        .update({
-          destination: editDestination.trim(),
-          start_date: editStartDate,
-          end_date: editEndDate,
-          budget_estimate: editBudgetEstimate ? Number(editBudgetEstimate) : null,
-          notes: editNotes.trim() || null
-        })
-        .eq("id", activePlan.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setPlans(prev => prev.map(p => p.id === activePlan.id ? updatedPlan : p));
-      setShowEditModal(false);
-    } catch (err) {
-      console.error("Failed to update plan:", err);
-      alert("Failed to update plan.");
+      console.error("Failed to save plan:", err);
+      alert("Failed to save plan.");
     } finally {
       setIsSubmitting(false);
     }
@@ -643,7 +638,7 @@ export default function NewHolidayPage() {
 
         <div className="relative z-10 flex gap-2">
           <Button
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => setIsModalOpen(true)}
             className="bg-primary hover:bg-primary/95 text-on-primary font-bold px-5 py-2.5 rounded-xl shadow-md active:scale-95 transition-all flex items-center gap-2 text-xs uppercase tracking-wider"
           >
             <Plus className="h-4 w-4" /> Plan New Trip
@@ -731,15 +726,15 @@ export default function NewHolidayPage() {
                   <div
                     key={plan.id}
                     onClick={() => setActivePlanId(plan.id)}
-                    className={`p-3.5 rounded-xl border text-left cursor-pointer transition-all duration-200 active:scale-[0.99] flex flex-col justify-between gap-2 shadow-xs ${
+                    className={`group p-3.5 rounded-xl border text-left cursor-pointer transition-all duration-200 active:scale-[0.99] flex flex-col justify-between gap-2 shadow-xs ${
                       isActive
                         ? "bg-primary/10 border-primary shadow-sm"
                         : "bg-surface hover:bg-surface-container-low border-outline-variant/20"
                     }`}
                   >
                     <div className="flex justify-between items-start gap-2">
-                      <div>
-                        <h4 className={`font-serif font-bold text-sm ${isActive ? "text-primary" : "text-on-surface"}`}>
+                      <div className="min-w-0 flex-1">
+                        <h4 className={`font-serif font-bold text-sm ${isActive ? "text-primary" : "text-on-surface"} truncate`}>
                           {plan.destination}
                         </h4>
                         <p className="text-[10.5px] text-on-surface-variant/80 font-semibold mt-0.5 flex items-center gap-1">
@@ -749,9 +744,33 @@ export default function NewHolidayPage() {
                           {new Date(plan.end_date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                         </p>
                       </div>
-                      <span className={`px-2 py-0.5 rounded-full border text-[9px] font-bold uppercase tracking-wide shrink-0 ${statusInfo.color}`}>
-                        {statusInfo.label}
-                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className={`px-2 py-0.5 rounded-full border text-[9px] font-bold uppercase tracking-wide ${statusInfo.color}`}>
+                          {statusInfo.label}
+                        </span>
+                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditClick(plan);
+                            }}
+                            className="p-1 rounded-full hover:bg-primary/15 text-on-surface-variant/60 hover:text-primary active:scale-95 transition-all"
+                            title="Edit"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeletePlan(plan.id);
+                            }}
+                            className="p-1 rounded-full hover:bg-destructive/10 text-on-surface-variant/60 hover:text-destructive active:scale-95 transition-all"
+                            title="Delete"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="flex justify-between items-center pt-2 border-t border-outline-variant/15 text-[10.5px] text-on-surface-variant/70 font-medium">
@@ -782,7 +801,7 @@ export default function NewHolidayPage() {
                 </p>
               </div>
               <Button
-                onClick={() => setShowCreateModal(true)}
+                onClick={() => setIsModalOpen(true)}
                 className="mt-2 bg-primary hover:bg-primary/95 text-on-primary font-bold px-6 py-2.5 rounded-xl shadow-md"
               >
                 Create a Trip Plan
@@ -817,7 +836,7 @@ export default function NewHolidayPage() {
                     <Copy className="h-3.5 w-3.5" /> Invite Family
                   </button>
                   <button
-                    onClick={handleOpenEditModal}
+                    onClick={() => handleEditClick(activePlan)}
                     className="px-3.5 py-2 rounded-xl bg-secondary text-on-secondary font-bold text-xs hover:bg-secondary/95 transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
                   >
                     <Edit className="h-3.5 w-3.5" /> Edit Trip
@@ -1149,26 +1168,26 @@ export default function NewHolidayPage() {
 
       </div>
 
-      {/* PLAN NEW TRIP MODAL */}
-      {showCreateModal && (
+      {/* UNIFIED TRIP MODAL */}
+      {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div 
             className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity duration-300 animate-in fade-in" 
-            onClick={() => setShowCreateModal(false)} 
+            onClick={handleCloseModal} 
           />
 
           <form 
-            onSubmit={handleCreatePlan} 
+            onSubmit={handleFormSubmit} 
             className="relative z-10 w-full max-w-lg glass-card border border-outline-variant/30 rounded-2xl p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150"
           >
             <div className="flex items-center justify-between pb-3 border-b border-outline-variant/20">
               <h3 className="font-serif text-lg font-bold text-primary flex items-center gap-2">
                 <Luggage className="h-5 w-5" />
-                Plan New Family Trip
+                {editingId ? "Update Holiday Plan" : "Plan New Family Trip"}
               </h3>
               <button 
                 type="button"
-                onClick={() => setShowCreateModal(false)}
+                onClick={handleCloseModal}
                 className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant/60 hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer"
               >
                 <X className="h-5 w-5" />
@@ -1241,128 +1260,36 @@ export default function NewHolidayPage() {
               />
             </div>
 
-            <div className="space-y-1">
-              <Label htmlFor="packing" className="text-[10px] font-bold uppercase tracking-wider text-primary">Packing Checklist (Optional)</Label>
-              <Input
-                id="packing"
-                type="text"
-                placeholder="Passport, Swimwear, Universal adapters, Sunscreen (comma separated)"
-                value={packingList}
-                onChange={(e) => setPackingList(e.target.value)}
-                className="bg-surface-container-low border-outline-variant focus:border-primary/50 text-xs rounded-xl focus:ring-primary/20"
-              />
-            </div>
+            {!editingId && (
+              <div className="space-y-1">
+                <Label htmlFor="packing" className="text-[10px] font-bold uppercase tracking-wider text-primary">Packing Checklist (Optional)</Label>
+                <Input
+                  id="packing"
+                  type="text"
+                  placeholder="Passport, Swimwear, Universal adapters, Sunscreen (comma separated)"
+                  value={packingList}
+                  onChange={(e) => setPackingList(e.target.value)}
+                  className="bg-surface-container-low border-outline-variant focus:border-primary/50 text-xs rounded-xl focus:ring-primary/20"
+                />
+              </div>
+            )}
 
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full mt-2 bg-primary hover:bg-primary/95 text-on-primary py-3 rounded-xl active:scale-95 transition-all shadow-md font-sans text-xs font-bold uppercase tracking-widest cursor-pointer"
-            >
-              {isSubmitting ? "Creating Plan..." : "Create Trip Plan"}
-            </Button>
-          </form>
-        </div>
-      )}
-
-      {/* EDIT TRIP DETAILS MODAL */}
-      {showEditModal && activePlan && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div 
-            className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity duration-300 animate-in fade-in" 
-            onClick={() => setShowEditModal(false)} 
-          />
-
-          <form 
-            onSubmit={handleEditPlan} 
-            className="relative z-10 w-full max-w-lg glass-card border border-outline-variant/30 rounded-2xl p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150"
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-outline-variant/20">
-              <h3 className="font-serif text-lg font-bold text-primary flex items-center gap-2">
-                <Luggage className="h-5 w-5" />
-                Edit Family Trip Details
-              </h3>
-              <button 
+            <div className="flex gap-3 pt-2">
+              <Button
                 type="button"
-                onClick={() => setShowEditModal(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant/60 hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer"
+                onClick={handleCloseModal}
+                className="flex-1 bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-sans text-xs font-bold uppercase tracking-wider rounded-xl py-3 border border-outline-variant"
               >
-                <X className="h-5 w-5" />
-              </button>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1 bg-primary hover:bg-primary/95 text-on-primary py-3 rounded-xl active:scale-95 transition-all shadow-md font-sans text-xs font-bold uppercase tracking-wider cursor-pointer"
+              >
+                {isSubmitting ? "Saving..." : editingId ? "Save Changes" : "Create Trip Plan"}
+              </Button>
             </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="editDestination" className="text-[10px] font-bold uppercase tracking-wider text-primary">Destination</Label>
-              <Input
-                id="editDestination"
-                type="text"
-                placeholder="e.g. Goa, Paris, Santorini, Manali"
-                value={editDestination}
-                onChange={(e) => setEditDestination(e.target.value)}
-                className="bg-surface-container-low border-outline-variant focus:border-primary/50 text-xs rounded-xl focus:ring-primary/20"
-                required
-              />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1">
-                <Label htmlFor="editStartDate" className="text-[10px] font-bold uppercase tracking-wider text-primary">Start Date</Label>
-                <Input
-                  id="editStartDate"
-                  type="date"
-                  value={editStartDate}
-                  onChange={(e) => setEditStartDate(e.target.value)}
-                  className="bg-surface-container-low border-outline-variant focus:border-primary/50 text-xs rounded-xl focus:ring-primary/20 cursor-pointer"
-                  required
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="editEndDate" className="text-[10px] font-bold uppercase tracking-wider text-primary">End Date</Label>
-                <Input
-                  id="editEndDate"
-                  type="date"
-                  value={editEndDate}
-                  onChange={(e) => setEditEndDate(e.target.value)}
-                  className="bg-surface-container-low border-outline-variant focus:border-primary/50 text-xs rounded-xl focus:ring-primary/20 cursor-pointer"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="editBudget" className="text-[10px] font-bold uppercase tracking-wider text-primary">Budget Estimate (INR)</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-2 text-xs text-on-surface-variant font-bold">₹</span>
-                <Input
-                  id="editBudget"
-                  type="number"
-                  placeholder="0.00"
-                  value={editBudgetEstimate}
-                  onChange={(e) => setEditBudgetEstimate(e.target.value)}
-                  className="pl-7 bg-surface-container-low border-outline-variant focus:border-primary/50 text-xs font-bold rounded-xl focus:ring-primary/20"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="editNotes" className="text-[10px] font-bold uppercase tracking-wider text-primary">Itinerary / Notes (Optional)</Label>
-              <Input
-                id="editNotes"
-                type="text"
-                placeholder="Flight details, hotel reservation codes, dinner timings..."
-                value={editNotes}
-                onChange={(e) => setEditNotes(e.target.value)}
-                className="bg-surface-container-low border-outline-variant focus:border-primary/50 text-xs rounded-xl focus:ring-primary/20"
-              />
-            </div>
-
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full mt-2 bg-primary hover:bg-primary/95 text-on-primary py-3 rounded-xl active:scale-95 transition-all shadow-md font-sans text-xs font-bold uppercase tracking-widest cursor-pointer"
-            >
-              {isSubmitting ? "Saving Changes..." : "Save Changes"}
-            </Button>
           </form>
         </div>
       )}

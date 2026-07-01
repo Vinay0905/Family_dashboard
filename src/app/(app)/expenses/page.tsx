@@ -23,7 +23,8 @@ import {
   Edit2,
   Check,
   Search,
-  ArrowUpDown
+  ArrowUpDown,
+  Pencil
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -154,6 +155,39 @@ function ExpensesPageContent() {
   const [expenseDate, setExpenseDate] = useState(new Date().toISOString().slice(0, 10));
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const isEditing = !!editingId;
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const openCreateModal = () => {
+    setEditingId(null);
+    setAmount("");
+    setCategory("");
+    setPaidBy("");
+    setDescription("");
+    setExpenseDate(new Date().toISOString().slice(0, 10));
+    setShowLogModal(true);
+  };
+
+  const openEditModal = (expense: any) => {
+    setEditingId(expense.id);
+    setAmount(String(expense.amount));
+    setCategory(expense.category || "");
+    setPaidBy(expense.paid_by || "");
+    setExpenseDate(expense.expense_date);
+    setDescription(expense.description || "");
+    setShowLogModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setEditingId(null);
+    setAmount("");
+    setCategory("");
+    setPaidBy("");
+    setDescription("");
+    setExpenseDate(new Date().toISOString().slice(0, 10));
+    setShowLogModal(false);
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -269,7 +303,7 @@ function ExpensesPageContent() {
     if (mounted) {
       loadData();
     }
-  }, [supabase, router, currentMonth, currentYear, mounted, cachedFamilyId, cachedMembers, cachedUser, cachedRole, isInitialized, setAppInfo]);
+  }, [supabase, router, currentMonth, currentYear, mounted, cachedFamilyId, cachedMembers, cachedUser, cachedRole, isInitialized, setAppInfo, refreshTrigger]);
 
   const handleUpdateBudget = async () => {
     if (!familyId || isNaN(Number(tempBudget))) return;
@@ -295,32 +329,51 @@ function ExpensesPageContent() {
 
     setIsSubmitting(true);
     try {
-      const { data: newExpense, error } = await supabase
-        .from("expenses")
-        .insert({
-          family_id: familyId,
-          amount: Number(amount),
-          category: category as any,
-          paid_by: paidBy,
-          expense_date: expenseDate,
-          description: description.trim() || null,
-          created_by: currentUser.id
-        })
-        .select()
-        .single();
+      const payload = {
+        amount: Number(amount),
+        category: category as any,
+        paid_by: paidBy,
+        expense_date: expenseDate,
+        description: description.trim() || null,
+      };
 
-      if (error) throw error;
+      if (isEditing) {
+        const { data: updatedExpense, error } = await supabase
+          .from("expenses")
+          .update(payload as any)
+          .eq("id", editingId)
+          .select()
+          .single();
 
-      setExpenses((prev) => [...prev, newExpense]);
-      setAmount("");
-      setCategory("");
-      setPaidBy("");
-      setDescription("");
-      setExpenseDate(new Date().toISOString().slice(0, 10));
-      setShowLogModal(false);
+        if (error) throw error;
+
+        setExpenses((prev) =>
+          prev.map((exp) => (exp.id === editingId ? updatedExpense : exp))
+        );
+        alert("Expense updated successfully!");
+        handleCloseModal();
+        setRefreshTrigger((prev) => prev + 1);
+      } else {
+        const { data: newExpense, error } = await supabase
+          .from("expenses")
+          .insert({
+            family_id: familyId,
+            created_by: currentUser.id,
+            ...payload
+          } as any)
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        setExpenses((prev) => [...prev, newExpense]);
+        alert("Expense logged successfully!");
+        handleCloseModal();
+        setRefreshTrigger((prev) => prev + 1);
+      }
     } catch (err) {
       console.error("Failed to save expense:", err);
-      alert("Failed to log expense.");
+      alert(isEditing ? "Failed to update expense." : "Failed to log expense.");
     } finally {
       setIsSubmitting(false);
     }
@@ -529,7 +582,7 @@ function ExpensesPageContent() {
 
           {/* Add Expense Desktop Button */}
           <button
-            onClick={() => setShowLogModal(true)}
+            onClick={openCreateModal}
             className="hidden md:flex bg-secondary text-on-secondary px-6 h-11 rounded-2xl items-center justify-center gap-2 font-bold shadow-md hover:shadow-lg hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer shrink-0"
           >
             <Plus className="h-4 w-4" /> Log New Expense
@@ -879,13 +932,22 @@ function ExpensesPageContent() {
                           ₹{Number(expense.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
                         <td className="p-4 pr-6 text-center">
-                          <button
-                            onClick={() => handleDeleteExpense(expense.id)}
-                            className="p-1.5 text-on-surface-variant/40 hover:text-error hover:bg-error-container/20 rounded-xl transition-all cursor-pointer"
-                            title="Delete Transaction"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              onClick={() => openEditModal(expense)}
+                              className="p-1.5 text-on-surface-variant/40 hover:text-primary hover:bg-primary-container/20 rounded-xl transition-all cursor-pointer"
+                              title="Edit Transaction"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteExpense(expense.id)}
+                              className="p-1.5 text-on-surface-variant/40 hover:text-error hover:bg-error-container/20 rounded-xl transition-all cursor-pointer"
+                              title="Delete Transaction"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -938,13 +1000,22 @@ function ExpensesPageContent() {
                         </div>
                       </div>
 
-                      <button
-                        onClick={() => handleDeleteExpense(expense.id)}
-                        className="p-1.5 text-on-surface-variant/40 hover:text-error hover:bg-error-container/20 rounded-xl transition-all cursor-pointer"
-                        title="Delete Transaction"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => openEditModal(expense)}
+                          className="p-1.5 text-on-surface-variant/40 hover:text-primary hover:bg-primary-container/20 rounded-xl transition-all cursor-pointer"
+                          title="Edit Transaction"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteExpense(expense.id)}
+                          className="p-1.5 text-on-surface-variant/40 hover:text-error hover:bg-error-container/20 rounded-xl transition-all cursor-pointer"
+                          title="Delete Transaction"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -956,10 +1027,7 @@ function ExpensesPageContent() {
 
       {/* ─── MOBILE FLOATING ACTION BUTTON ────────────────── */}
       <button
-        onClick={() => {
-          setExpenseDate(new Date().toISOString().slice(0, 10));
-          setShowLogModal(true);
-        }}
+        onClick={openCreateModal}
         className="md:hidden fixed right-6 bottom-20 w-14 h-14 bg-secondary text-on-secondary rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all z-30"
         title="Log New Expense"
       >
@@ -972,7 +1040,7 @@ function ExpensesPageContent() {
           {/* Backdrop overlay */}
           <div
             className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity duration-300"
-            onClick={() => setShowLogModal(false)}
+            onClick={handleCloseModal}
           />
 
           {/* Modal Container */}
@@ -984,11 +1052,11 @@ function ExpensesPageContent() {
             <div className="flex items-center justify-between pb-3 border-b border-outline-variant/20 p-5">
               <h3 className="font-serif text-lg font-bold flex items-center gap-2">
                 <Wallet className="h-5 w-5 text-primary" />
-                Log Shared Purchase
+                {isEditing ? "Edit Shared Purchase" : "Log Shared Purchase"}
               </h3>
               <button
                 type="button"
-                onClick={() => setShowLogModal(false)}
+                onClick={handleCloseModal}
                 className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant/75 hover:bg-surface-container hover:text-on-surface transition-colors cursor-pointer"
               >
                 <X className="h-5 w-5" />
@@ -1077,13 +1145,22 @@ function ExpensesPageContent() {
               </div>
 
               {/* Action Buttons */}
-              <div className="pt-2">
+              <div className="pt-2 flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="flex-1 bg-surface-container text-on-surface-variant font-bold py-2.5 rounded-xl hover:bg-surface-container-high transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-primary text-on-primary font-bold py-2.5 rounded-xl hover:shadow-lg active:scale-[0.98] transition-all disabled:opacity-55 cursor-pointer"
+                  className="flex-1 bg-primary text-on-primary font-bold py-2.5 rounded-xl hover:shadow-lg active:scale-[0.98] transition-all disabled:opacity-55 cursor-pointer"
                 >
-                  {isSubmitting ? "Saving Transaction..." : "Save Transaction"}
+                  {isSubmitting 
+                    ? (isEditing ? "Saving Changes..." : "Saving Transaction...") 
+                    : (isEditing ? "Save Changes" : "Save Transaction")}
                 </button>
               </div>
             </div>

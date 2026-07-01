@@ -24,7 +24,8 @@ import {
   X,
   PhoneCall,
   Copy,
-  Check
+  Check,
+  Pencil
 } from "lucide-react";
 
 interface Contact {
@@ -173,11 +174,36 @@ export default function ContactsPage() {
   const [showMobileAdd, setShowMobileAdd] = useState(false);
 
   // Form Inputs
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [formName, setFormName] = useState("");
   const [formCategory, setFormCategory] = useState<Contact["category"]>("other");
   const [formPhone, setFormPhone] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formNotes, setFormNotes] = useState("");
+
+  const resetForm = () => {
+    setFormName("");
+    setFormCategory("other");
+    setFormPhone("");
+    setFormEmail("");
+    setFormNotes("");
+    setEditingId(null);
+    setIsEditing(false);
+  };
+
+  const handleOpenEdit = (contact: Contact) => {
+    setEditingId(contact.id);
+    setIsEditing(true);
+    setFormName(contact.name || "");
+    setFormCategory(contact.category || "other");
+    setFormPhone(contact.phone || "");
+    setFormEmail(contact.email || "");
+    setFormNotes(contact.notes || "");
+    setIsAddingNew(true);
+    setShowMobileAdd(true);
+    setShowMobileDetails(false);
+  };
 
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -247,44 +273,71 @@ export default function ContactsPage() {
     if (!formName.trim() || !member || !user) return;
     try {
       setSubmitting(true);
-      const { data, error } = await supabase
-        .from("contacts")
-        .insert({
-          family_id: member.family_id,
-          created_by: user.id,
-          name: formName.trim(),
-          category: formCategory,
-          phone: formPhone.trim() || null,
-          email: formEmail.trim() || null,
-          notes: formNotes.trim() || null,
-        })
-        .select()
-        .single();
+      if (isEditing && editingId) {
+        const { error } = await supabase
+          .from("contacts")
+          .update({
+            name: formName.trim(),
+            category: formCategory,
+            phone: formPhone.trim() || null,
+            email: formEmail.trim() || null,
+            notes: formNotes.trim() || null,
+          })
+          .eq("id", editingId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      // Reset Form State
-      setFormName("");
-      setFormCategory("other");
-      setFormPhone("");
-      setFormEmail("");
-      setFormNotes("");
-      setIsAddingNew(false);
-      setShowMobileAdd(false);
+        // Reset state
+        resetForm();
+        setIsAddingNew(false);
+        setShowMobileAdd(false);
 
-      // Refresh List
-      const { data: contactsData } = await supabase
-        .from("contacts")
-        .select("*")
-        .eq("family_id", member.family_id)
-        .order("name");
-      setContacts(contactsData || []);
+        // Refresh list
+        const { data: contactsData } = await supabase
+          .from("contacts")
+          .select("*")
+          .eq("family_id", member.family_id)
+          .order("name");
+        setContacts(contactsData || []);
 
-      if (data) {
-        setSelectedContactId(data.id);
+        alert("Contact updated successfully!");
+      } else {
+        const { data, error } = await supabase
+          .from("contacts")
+          .insert({
+            family_id: member.family_id,
+            created_by: user.id,
+            name: formName.trim(),
+            category: formCategory,
+            phone: formPhone.trim() || null,
+            email: formEmail.trim() || null,
+            notes: formNotes.trim() || null,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        // Reset state
+        resetForm();
+        setIsAddingNew(false);
+        setShowMobileAdd(false);
+
+        // Refresh List
+        const { data: contactsData } = await supabase
+          .from("contacts")
+          .select("*")
+          .eq("family_id", member.family_id)
+          .order("name");
+        setContacts(contactsData || []);
+
+        if (data) {
+          setSelectedContactId(data.id);
+        }
+        alert("Contact added successfully!");
       }
     } catch (err) {
-      console.error("Error adding contact:", err);
+      console.error("Error saving contact:", err);
       alert("Failed to save contact. Please try again.");
     } finally {
       setSubmitting(false);
@@ -457,6 +510,7 @@ export default function ContactsPage() {
             <h3 className="font-heading text-base font-bold text-on-surface">Shared Directory</h3>
             <button
               onClick={() => {
+                resetForm();
                 setIsAddingNew(true);
                 setSelectedContactId(null);
                 setShowMobileAdd(true);
@@ -580,8 +634,8 @@ export default function ContactsPage() {
           {isAddingNew ? (
             <form onSubmit={handleAddContact} className="p-6 space-y-5 h-full overflow-y-auto custom-scrollbar">
               <div>
-                <h3 className="font-heading text-xl font-extrabold text-on-surface">Add New Contact</h3>
-                <p className="text-xs text-on-surface-variant/70 mt-1">Create a shared household entry in the directory.</p>
+                <h3 className="font-heading text-xl font-extrabold text-on-surface">{isEditing ? "Edit Contact" : "Add New Contact"}</h3>
+                <p className="text-xs text-on-surface-variant/70 mt-1">Create or update a shared household entry in the directory.</p>
               </div>
 
               <div className="space-y-4">
@@ -653,6 +707,7 @@ export default function ContactsPage() {
                 <button
                   type="button"
                   onClick={() => {
+                    resetForm();
                     setIsAddingNew(false);
                     if (contacts.length > 0) {
                       setSelectedContactId(contacts[0].id);
@@ -667,7 +722,7 @@ export default function ContactsPage() {
                   disabled={submitting}
                   className="flex-1 py-3 bg-primary text-on-primary font-sans text-xs font-bold uppercase tracking-wider rounded-xl hover:brightness-110 active:scale-95 transition-all shadow-md flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
                 >
-                  {submitting ? "Saving..." : "Save Contact"}
+                  {submitting ? "Saving..." : isEditing ? "Save Changes" : "Save Contact"}
                 </button>
               </div>
             </form>
@@ -699,6 +754,13 @@ export default function ContactsPage() {
                   </p>
                 </div>
                 <div className="flex gap-2 shrink-0 self-end md:self-auto">
+                  <button
+                    onClick={() => handleOpenEdit(selectedContact)}
+                    className="w-10 h-10 rounded-xl border border-outline-variant/30 text-on-surface-variant/50 hover:text-primary hover:bg-primary/10 hover:border-primary/20 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
+                    title="Edit Contact"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
                   <button
                     onClick={() => handleDeleteContact(selectedContact.id)}
                     disabled={deleting}
@@ -868,6 +930,7 @@ export default function ContactsPage() {
       {/* ─── MOBILE FLOATING ACTION BUTTON ──────────────────── */}
       <button
         onClick={() => {
+          resetForm();
           setIsAddingNew(true);
           setSelectedContactId(null);
           setShowMobileAdd(true);
@@ -970,14 +1033,22 @@ export default function ContactsPage() {
                 </div>
               </div>
 
-              {/* Delete Button */}
-              <button
-                onClick={() => handleDeleteContact(selectedContact.id)}
-                disabled={deleting}
-                className="w-full py-3 bg-error text-on-error font-sans text-xs font-bold uppercase tracking-wider rounded-xl hover:brightness-105 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Trash2 className="h-4 w-4" /> Delete Contact
-              </button>
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleOpenEdit(selectedContact)}
+                  className="flex-1 py-3 bg-primary text-on-primary font-sans text-xs font-bold uppercase tracking-wider rounded-xl hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Pencil className="h-4 w-4" /> Edit Contact
+                </button>
+                <button
+                  onClick={() => handleDeleteContact(selectedContact.id)}
+                  disabled={deleting}
+                  className="flex-1 py-3 bg-error text-on-error font-sans text-xs font-bold uppercase tracking-wider rounded-xl hover:brightness-105 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <Trash2 className="h-4 w-4" /> Delete Contact
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -986,22 +1057,28 @@ export default function ContactsPage() {
       {/* ─── MOBILE ADD DRAWER ─────────────────────────────── */}
       {showMobileAdd && (
         <div className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end bg-black/40 backdrop-blur-xs">
-          <div className="absolute inset-0" onClick={() => setShowMobileAdd(false)} />
+          <div className="absolute inset-0" onClick={() => {
+            resetForm();
+            setShowMobileAdd(false);
+          }} />
           <div className="relative bg-surface rounded-t-3xl max-h-[85vh] overflow-y-auto p-6 space-y-5 shadow-2xl border-t border-outline-variant/30 animate-in slide-in-from-bottom duration-300">
             {/* Handle bar */}
             <div className="w-12 h-1 bg-outline-variant/60 rounded-full mx-auto mb-2" />
 
             {/* Close button */}
             <button
-              onClick={() => setShowMobileAdd(false)}
+              onClick={() => {
+                resetForm();
+                setShowMobileAdd(false);
+              }}
               className="absolute top-4 right-4 p-2 rounded-xl bg-surface-container hover:bg-surface-container-high active:scale-95 transition-all text-on-surface-variant"
             >
               <X className="h-5 w-5" />
             </button>
 
             <div>
-              <h3 className="font-heading text-xl font-bold text-on-surface">Add Contact</h3>
-              <p className="text-xs text-on-surface-variant/70 mt-1">Create a shared household entry.</p>
+              <h3 className="font-heading text-xl font-bold text-on-surface">{isEditing ? "Edit Contact" : "Add Contact"}</h3>
+              <p className="text-xs text-on-surface-variant/70 mt-1">Create or update a shared household entry.</p>
             </div>
 
             <form onSubmit={handleAddContact} className="space-y-4">
@@ -1071,7 +1148,7 @@ export default function ContactsPage() {
                 disabled={submitting}
                 className="w-full mt-2 py-3 bg-primary text-on-primary font-sans text-xs font-bold uppercase tracking-wider rounded-xl hover:brightness-110 active:scale-95 transition-all shadow-md flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
               >
-                {submitting ? "Saving..." : "Save Contact"}
+                {submitting ? "Saving..." : isEditing ? "Save Changes" : "Save Contact"}
               </button>
             </form>
           </div>

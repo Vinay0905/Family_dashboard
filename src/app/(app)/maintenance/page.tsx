@@ -32,7 +32,8 @@ import {
   Droplet,
   Info,
   CalendarDays,
-  PenTool
+  PenTool,
+  Pencil
 } from "lucide-react";
 
 // Asset Category Cover Images
@@ -152,6 +153,8 @@ export default function MaintenancePage() {
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [currentAssetId, setCurrentAssetId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState("");
   const [lastServiceDate, setLastServiceDate] = useState("");
   const [nextDueDate, setNextDueDate] = useState("");
@@ -272,6 +275,8 @@ export default function MaintenancePage() {
 
   const resetForm = () => {
     setCurrentAssetId(null);
+    setEditingId(null);
+    setIsEditing(false);
     setName("");
     setLastServiceDate("");
     setNextDueDate("");
@@ -282,12 +287,16 @@ export default function MaintenancePage() {
 
   const handleOpenCreateModal = () => {
     resetForm();
+    setEditingId(null);
+    setIsEditing(false);
     setModalMode("create");
     setShowModal(true);
   };
 
   const handleOpenEditModal = (asset: any) => {
     setCurrentAssetId(asset.id);
+    setEditingId(asset.id);
+    setIsEditing(true);
     setName(asset.name || "");
     setLastServiceDate(asset.last_service_date || "");
     setNextDueDate(asset.next_due_date || "");
@@ -363,7 +372,8 @@ export default function MaintenancePage() {
 
   const handleUpdateAsset = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentAssetId || !name.trim() || !familyId) return;
+    const targetId = editingId || currentAssetId;
+    if (!targetId || !name.trim() || !familyId) return;
 
     setIsSubmitting(true);
     try {
@@ -376,7 +386,7 @@ export default function MaintenancePage() {
           vendor: vendor.trim() || null,
           notes: notes.trim() || null,
         })
-        .eq("id", currentAssetId)
+        .eq("id", targetId)
         .select()
         .single();
 
@@ -395,9 +405,15 @@ export default function MaintenancePage() {
         });
       }
 
-      setAssets((prev) =>
-        prev.map((a) => (a.id === currentAssetId ? updatedAsset : a))
-      );
+      // Reload data from Supabase
+      const { data: assetsData } = await supabase
+        .from("maintenance_assets")
+        .select("*")
+        .eq("family_id", familyId);
+
+      if (assetsData) {
+        setAssets(assetsData);
+      }
 
       // Add to dynamic activity feed
       const newActivity = {
@@ -425,6 +441,7 @@ export default function MaintenancePage() {
 
       resetForm();
       setShowModal(false);
+      alert("Asset updated successfully!");
     } catch (err) {
       console.error("Failed to update asset:", err);
       alert("Failed to update asset.");
@@ -900,6 +917,13 @@ export default function MaintenancePage() {
                           Record Maintenance
                         </Button>
                         <button
+                          onClick={() => handleOpenEditModal(asset)}
+                          className="w-8.5 h-8.5 rounded-xl border border-outline-variant/30 flex items-center justify-center text-on-surface-variant/50 hover:text-primary hover:bg-primary/10 hover:border-primary/20 transition-all cursor-pointer"
+                          title="Edit Asset"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
                           onClick={() => handleDeleteAsset(asset.id, asset.name)}
                           className="w-8.5 h-8.5 rounded-xl border border-outline-variant/30 flex items-center justify-center text-on-surface-variant/50 hover:text-error hover:bg-error/10 hover:border-error/20 transition-all cursor-pointer"
                           title="Delete Asset"
@@ -1036,6 +1060,13 @@ export default function MaintenancePage() {
                               <PenTool className="h-3.5 w-3.5" />
                             </button>
                             <button
+                              onClick={() => handleOpenEditModal(asset)}
+                              className="p-1.5 text-on-surface-variant/40 hover:text-primary hover:bg-primary/10 rounded-xl transition-all inline-flex items-center justify-center cursor-pointer"
+                              title="Edit Asset"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button
                               onClick={() =>
                                 handleDeleteAsset(asset.id, asset.name)
                               }
@@ -1129,7 +1160,7 @@ export default function MaintenancePage() {
                 className={`w-full h-8.5 rounded-xl text-xs font-bold shadow-xs active:scale-95 transition-all ${
                   nurturingTipAdded
                     ? "bg-tertiary text-on-tertiary border border-white/20 cursor-not-allowed"
-                    : "bg-surface-container-lowest text-tertiary-container hover:bg-white cursor-pointer"
+                    : "bg-surface-container-lowest text-tertiary hover:bg-tertiary hover:text-white cursor-pointer"
                 }`}
               >
                 {nurturingTipAdded ? (
@@ -1306,18 +1337,30 @@ export default function MaintenancePage() {
               </div>
             </div>
 
-            {/* Submit Button */}
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full mt-3 bg-primary hover:bg-primary/95 text-on-primary py-3.5 rounded-xl active:scale-[0.98] transition-all shadow-md font-sans text-xs font-bold uppercase tracking-widest cursor-pointer"
-            >
-              {isSubmitting
-                ? "Saving Details..."
-                : modalMode === "create"
-                ? "Register System"
-                : "Save System Log"}
-            </Button>
+            {/* Action Buttons */}
+            <div className="flex gap-3 mt-3">
+              <Button
+                type="button"
+                onClick={() => {
+                  resetForm();
+                  setShowModal(false);
+                }}
+                className="flex-1 bg-surface-container hover:bg-surface-container-high text-on-surface py-3.5 rounded-xl transition-all font-sans text-xs font-bold uppercase tracking-widest cursor-pointer border border-outline-variant/30"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1 bg-primary hover:bg-primary/95 text-on-primary py-3.5 rounded-xl active:scale-[0.98] transition-all shadow-md font-sans text-xs font-bold uppercase tracking-widest cursor-pointer"
+              >
+                {isSubmitting
+                  ? "Saving Details..."
+                  : isEditing
+                  ? "Save Changes"
+                  : "Register System"}
+              </Button>
+            </div>
           </form>
         </div>
       )}

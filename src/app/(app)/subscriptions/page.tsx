@@ -29,7 +29,8 @@ import {
   Lightbulb,
   ArrowRight,
   TrendingDown,
-  Info
+  Info,
+  Pencil
 } from "lucide-react";
 
 const PLAN_TYPES = ["Weekly", "Monthly", "Quarterly", "Yearly", "One-time"];
@@ -154,7 +155,8 @@ export default function NewSubscriptionsPage() {
 
   // Modal Form State
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingSub, setEditingSub] = useState<any | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const isEditing = !!editingId;
   const [name, setName] = useState("");
   const [category, setCategory] = useState("Entertainment");
   const [planType, setPlanType] = useState("Monthly");
@@ -163,6 +165,18 @@ export default function NewSubscriptionsPage() {
   const [paymentMethod, setPaymentMethod] = useState("Credit Card");
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleCloseModal = () => {
+    setShowCreateModal(false);
+    setEditingId(null);
+    setName("");
+    setCategory("Entertainment");
+    setPlanType("Monthly");
+    setCost("");
+    setRenewalDate("");
+    setPaymentMethod("Credit Card");
+    setNotes("");
+  };
 
   // Toast Notification State
   const [toast, setToast] = useState<{ show: boolean; message: string; type: "success" | "error" }>({
@@ -276,19 +290,19 @@ export default function NewSubscriptionsPage() {
         notes: notes.trim() || null
       };
 
-      if (editingSub) {
+      if (isEditing) {
         // Update existing subscription
         const { data: updatedSub, error } = await supabase
           .from("subscriptions")
           .update(subData as any)
-          .eq("id", editingSub.id)
+          .eq("id", editingId)
           .select()
           .single();
 
         if (error) throw error;
 
         setSubscriptions((prev) =>
-          prev.map((s) => (s.id === editingSub.id ? updatedSub : s))
+          prev.map((s) => (s.id === editingId ? updatedSub : s))
         );
         triggerToast("Subscription updated successfully!", "success");
       } else {
@@ -310,8 +324,7 @@ export default function NewSubscriptionsPage() {
         triggerToast("Subscription tracked successfully!", "success");
       }
 
-      setShowCreateModal(false);
-      setEditingSub(null);
+      handleCloseModal();
     } catch (err) {
       console.error("Failed to save subscription:", err);
       triggerToast("Failed to save subscription.", "error");
@@ -321,7 +334,7 @@ export default function NewSubscriptionsPage() {
   };
 
   const openCreateModal = () => {
-    setEditingSub(null);
+    setEditingId(null);
     setName("");
     setCategory("Entertainment");
     setPlanType("Monthly");
@@ -333,7 +346,7 @@ export default function NewSubscriptionsPage() {
   };
 
   const openEditModal = (sub: any) => {
-    setEditingSub(sub);
+    setEditingId(sub.id);
     setName(sub.name);
     setCategory(sub.category || "Entertainment");
     setPlanType(sub.plan_type || "Monthly");
@@ -958,13 +971,13 @@ export default function NewSubscriptionsPage() {
                     Paid
                   </button>
 
-                  {/* Manage / Edit Button */}
+                  {/* Pencil Edit Button */}
                   <button
                     onClick={() => openEditModal(sub)}
-                    className="py-1.5 px-3 font-bold text-xs rounded-xl border border-outline-variant/30 text-on-surface-variant bg-surface-container-low/30 hover:bg-surface-container-low hover:text-on-surface transition-all active:scale-95 cursor-pointer"
+                    className="p-1.5 text-on-surface-variant/40 hover:text-primary hover:bg-primary-container/30 transition-all rounded-xl cursor-pointer"
                     title="Edit Subscription Details"
                   >
-                    Manage
+                    <Pencil className="h-3.5 w-3.5" />
                   </button>
 
                   {/* Delete Button */}
@@ -1065,7 +1078,7 @@ export default function NewSubscriptionsPage() {
                 return (
                   <div key={idx} className="flex-1 flex flex-col items-center group relative h-full justify-end">
                     {/* Tooltip */}
-                    <div className="absolute -top-10 scale-0 group-hover:scale-100 transition-all duration-200 bg-inverse-surface text-inverse-on-surface text-[10px] font-bold px-2.5 py-1.5 rounded-xl shadow-md z-10 whitespace-nowrap">
+                    <div className="absolute -top-10 scale-0 group-hover:scale-100 transition-all duration-200 bg-popover text-popover-foreground border border-border text-[10px] font-bold px-2.5 py-1.5 rounded-xl shadow-md z-10 whitespace-nowrap">
                       ₹{Math.round(m.cost).toLocaleString("en-IN")}
                     </div>
                     {/* Bar */}
@@ -1106,7 +1119,7 @@ export default function NewSubscriptionsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div 
             className="fixed inset-0 bg-black/40 backdrop-blur-xs" 
-            onClick={() => { setShowCreateModal(false); setEditingSub(null); }} 
+            onClick={handleCloseModal} 
           />
 
           <form 
@@ -1116,11 +1129,11 @@ export default function NewSubscriptionsPage() {
             <div className="flex items-center justify-between pb-3 border-b border-outline-variant/15">
               <h3 className="font-serif text-lg font-bold text-primary flex items-center gap-2">
                 <CreditCard className="h-5 w-5" />
-                {editingSub ? "Edit Subscription" : "Track Subscription"}
+                {isEditing ? "Edit Subscription" : "Track Subscription"}
               </h3>
               <button 
                 type="button"
-                onClick={() => { setShowCreateModal(false); setEditingSub(null); }}
+                onClick={handleCloseModal}
                 className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant/60 hover:bg-surface-container-high transition-colors cursor-pointer"
               >
                 <X className="h-5 w-5" />
@@ -1229,17 +1242,26 @@ export default function NewSubscriptionsPage() {
               />
             </div>
 
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full mt-2 bg-primary hover:bg-primary-container text-white py-3 rounded-xl active:scale-95 transition-all shadow-md font-sans text-xs font-bold uppercase tracking-widest cursor-pointer h-11"
-            >
-              {isSubmitting
-                ? "Saving..."
-                : editingSub
-                ? "Save Changes"
-                : "Track Subscription"}
-            </Button>
+            <div className="flex gap-3 mt-2">
+              <Button
+                type="button"
+                onClick={handleCloseModal}
+                className="flex-1 bg-surface-container text-on-surface-variant py-3 rounded-xl hover:bg-surface-container-high transition-all font-sans text-xs font-bold uppercase tracking-widest cursor-pointer h-11"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1 bg-primary hover:bg-primary-container text-white py-3 rounded-xl active:scale-95 transition-all shadow-md font-sans text-xs font-bold uppercase tracking-widest cursor-pointer h-11"
+              >
+                {isSubmitting
+                  ? "Saving..."
+                  : isEditing
+                  ? "Save Changes"
+                  : "Track Subscription"}
+              </Button>
+            </div>
           </form>
         </div>
       )}

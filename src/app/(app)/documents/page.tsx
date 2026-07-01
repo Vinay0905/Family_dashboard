@@ -25,7 +25,8 @@ import {
   FolderOpen,
   Info,
   Clock,
-  Sparkles
+  Sparkles,
+  Pencil
 } from "lucide-react";
 
 interface DocumentMetadata {
@@ -127,11 +128,32 @@ export default function NewDocumentsPage() {
 
   // Form states
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("aadhar");
   const [driveLink, setDriveLink] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const resetForm = () => {
+    setEditingId(null);
+    setIsEditing(false);
+    setTitle("");
+    setCategory("aadhar");
+    setDriveLink("");
+    setError(null);
+  };
+
+  const handleOpenEdit = (doc: DocumentMetadata) => {
+    setEditingId(doc.id);
+    setIsEditing(true);
+    setTitle(doc.name || "");
+    setCategory(doc.category || "aadhar");
+    setDriveLink(doc.storage_path || "");
+    setError(null);
+    setShowCreateModal(true);
+  };
 
   useEffect(() => {
     async function loadData() {
@@ -188,28 +210,55 @@ export default function NewDocumentsPage() {
         formattedLink = `https://${formattedLink}`;
       }
 
-      // Save document record (Google Drive Link stored in storage_path)
-      const { data: newDoc, error: dbError } = await supabase
-        .from("documents")
-        .insert({
-          family_id: member.family_id,
-          created_by: user.id,
-          name: title.trim(),
-          category: category as any,
-          storage_path: formattedLink,
-          file_size: 0,
-          mime_type: "google-drive"
-        })
-        .select()
-        .single();
+      if (isEditing && editingId) {
+        // Update document metadata
+        const { error: dbError } = await supabase
+          .from("documents")
+          .update({
+            name: title.trim(),
+            category: category as any,
+            storage_path: formattedLink,
+          })
+          .eq("id", editingId);
 
-      if (dbError) throw dbError;
+        if (dbError) throw dbError;
 
-      setDocuments((prev) => [newDoc as unknown as DocumentMetadata, ...prev]);
-      setTitle("");
-      setCategory("aadhar");
-      setDriveLink("");
-      setShowCreateModal(false);
+        // Reload document list
+        const { data: docsData } = await supabase
+          .from("documents")
+          .select("*")
+          .eq("family_id", member.family_id);
+
+        if (docsData) {
+          setDocuments(docsData as unknown as DocumentMetadata[]);
+        }
+
+        resetForm();
+        setShowCreateModal(false);
+        alert("Document updated successfully!");
+      } else {
+        // Save document record (Google Drive Link stored in storage_path)
+        const { data: newDoc, error: dbError } = await supabase
+          .from("documents")
+          .insert({
+            family_id: member.family_id,
+            created_by: user.id,
+            name: title.trim(),
+            category: category as any,
+            storage_path: formattedLink,
+            file_size: 0,
+            mime_type: "google-drive"
+          })
+          .select()
+          .single();
+
+        if (dbError) throw dbError;
+
+        setDocuments((prev) => [newDoc as unknown as DocumentMetadata, ...prev]);
+        resetForm();
+        setShowCreateModal(false);
+        alert("Document reference added successfully!");
+      }
     } catch (err: any) {
       console.error("Save error:", err);
       setError(err?.message ?? "Failed to save document link.");
@@ -298,7 +347,10 @@ export default function NewDocumentsPage() {
 
         <div className="relative z-10 shrink-0">
           <Button
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => {
+              resetForm();
+              setShowCreateModal(true);
+            }}
             className="bg-secondary hover:bg-secondary/90 text-on-secondary px-6 h-12 gap-2 text-xs font-bold uppercase tracking-wider shadow-md rounded-xl cursor-pointer active:scale-95 transition-all"
           >
             <Plus className="h-4.5 w-4.5" />
@@ -534,6 +586,13 @@ export default function NewDocumentsPage() {
                             Open Link <ExternalLink className="h-3 w-3" />
                           </a>
                           <button
+                            onClick={() => handleOpenEdit(doc)}
+                            className="p-2 text-on-surface-variant/40 hover:text-primary hover:bg-primary/10 rounded-xl transition-all cursor-pointer"
+                            title="Edit Reference"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
                             onClick={() => handleDeleteDocument(doc.id)}
                             className="p-2 text-on-surface-variant/40 hover:text-error hover:bg-error/10 rounded-xl transition-all cursor-pointer"
                             title="Remove Reference"
@@ -553,7 +612,10 @@ export default function NewDocumentsPage() {
 
       {/* ─── MOBILE FLOATING ACTION BUTTON ─────────────────── */}
       <button 
-        onClick={() => setShowCreateModal(true)}
+        onClick={() => {
+          resetForm();
+          setShowCreateModal(true);
+        }}
         className="md:hidden fixed right-6 bottom-20 w-14 h-14 bg-secondary text-on-secondary rounded-full shadow-lg flex items-center justify-center active:scale-90 transition-transform z-40"
         title="Add Document Link"
       >
@@ -575,11 +637,14 @@ export default function NewDocumentsPage() {
             <div className="flex items-center justify-between pb-3 border-b border-outline-variant/20">
               <h3 className="font-serif text-lg font-bold text-primary flex items-center gap-2">
                 <FileText className="h-5 w-5" />
-                Register Reference Link
+                {isEditing ? "Edit Reference Link" : "Register Reference Link"}
               </h3>
               <button 
                 type="button"
-                onClick={() => setShowCreateModal(false)}
+                onClick={() => {
+                  resetForm();
+                  setShowCreateModal(false);
+                }}
                 className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant/65 hover:bg-surface-container-high hover:text-on-surface transition-colors cursor-pointer"
               >
                 <X className="h-5 w-5" />
@@ -633,19 +698,34 @@ export default function NewDocumentsPage() {
               <p className="text-[9px] text-on-surface-variant/60 font-semibold uppercase mt-1">Please paste the share link from Google Drive, Dropbox, or OneDrive</p>
             </div>
 
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full mt-2 bg-primary hover:bg-primary-container text-on-primary py-3 rounded-xl active:scale-95 transition-all shadow-md font-sans text-xs font-bold uppercase tracking-widest cursor-pointer"
-            >
-              {isSubmitting ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Saving Link...
-                </span>
-              ) : (
-                "Save Link Reference"
-              )}
-            </Button>
+            {/* Action Buttons */}
+            <div className="flex gap-3 mt-2">
+              <Button
+                type="button"
+                onClick={() => {
+                  resetForm();
+                  setShowCreateModal(false);
+                }}
+                className="flex-1 py-3 border border-outline-variant bg-surface text-on-surface font-sans text-xs font-bold uppercase tracking-widest rounded-xl hover:bg-surface-container-low active:scale-95 transition-all flex items-center justify-center gap-1 cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1 bg-primary hover:bg-primary-container text-on-primary py-3 rounded-xl active:scale-95 transition-all shadow-md font-sans text-xs font-bold uppercase tracking-widest cursor-pointer"
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Saving...
+                  </span>
+                ) : isEditing ? (
+                  "Save Changes"
+                ) : (
+                  "Save Link Reference"
+                )}
+              </Button>
+            </div>
           </form>
         </div>
       )}

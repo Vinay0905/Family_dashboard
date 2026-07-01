@@ -18,7 +18,8 @@ import {
   MessageSquare,
   Sparkles,
   UserPlus,
-  MoreHorizontal
+  MoreHorizontal,
+  Pencil
 } from "lucide-react";
 
 const SECTIONS = [
@@ -67,6 +68,8 @@ export default function NewShoppingPage() {
 
   // Success Toast state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const { familyId: cachedFamilyId, currentUser: cachedUser, isInitialized, setAppInfo } = useAppStore();
 
@@ -226,46 +229,103 @@ export default function NewShoppingPage() {
     }
   }
 
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setItemName("");
+    setQuantity(1);
+    setUnit("");
+    setItemCategory("groceries");
+  };
+
+  const handleEditItem = (item: any) => {
+    setEditingId(item.id);
+    setItemName(item.name || "");
+    setQuantity(item.quantity || 1);
+    setUnit(item.unit || "");
+    setItemCategory(item.category || "groceries");
+
+    setTimeout(() => {
+      const input = document.getElementById("shoppingItemName");
+      if (input) {
+        input.focus();
+        input.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 100);
+  };
+
   async function handleAddItem(e: React.FormEvent) {
     e.preventDefault();
     if (!itemName.trim() || !selectedListId || !user || !member) return;
 
     try {
-      const { data, error } = await supabase
-        .from("shopping_items")
-        .insert({
-          list_id: selectedListId,
-          family_id: member.family_id,
-          added_by: user.id,
-          name: itemName.trim(),
-          quantity: quantity || 1,
-          unit: unit.trim() || null,
-          category: itemCategory
-        } as any)
-        .select()
-        .single();
+      if (editingId) {
+        const { data, error } = await supabase
+          .from("shopping_items")
+          .update({
+            name: itemName.trim(),
+            quantity: quantity || 1,
+            unit: unit.trim() || null,
+            category: itemCategory
+          } as any)
+          .eq("id", editingId)
+          .select()
+          .single();
 
-      if (error) throw error;
+        if (error) throw error;
 
-      // Update state
-      setLists(
-        lists.map((l) => {
-          if (l.id === selectedListId) {
-            return { ...l, shopping_items: [...l.shopping_items, data] };
-          }
-          return l;
-        })
-      );
+        // Reload data
+        const { data: listsData } = await supabase
+          .from("shopping_lists")
+          .select("*, shopping_items(*)")
+          .eq("family_id", member.family_id)
+          .order("created_at");
 
-      setToastMessage(`Added "${itemName.trim()}"`);
-      setTimeout(() => setToastMessage(null), 3000);
+        if (listsData) {
+          setLists(listsData);
+        }
 
-      setItemName("");
-      setQuantity(1);
-      setUnit("");
-      setItemCategory("groceries");
+        setToastMessage(`Updated "${itemName.trim()}"`);
+        setTimeout(() => setToastMessage(null), 3000);
+
+        handleCancelEdit();
+      } else {
+        const { data, error } = await supabase
+          .from("shopping_items")
+          .insert({
+            list_id: selectedListId,
+            family_id: member.family_id,
+            added_by: user.id,
+            name: itemName.trim(),
+            quantity: quantity || 1,
+            unit: unit.trim() || null,
+            category: itemCategory
+          } as any)
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        // Update state
+        setLists(
+          lists.map((l) => {
+            if (l.id === selectedListId) {
+              return { ...l, shopping_items: [...l.shopping_items, data] };
+            }
+            return l;
+          })
+        );
+
+        setToastMessage(`Added "${itemName.trim()}"`);
+        setTimeout(() => setToastMessage(null), 3000);
+
+        setItemName("");
+        setQuantity(1);
+        setUnit("");
+        setItemCategory("groceries");
+      }
     } catch (err) {
-      console.error("Failed to add item:", err);
+      console.error(editingId ? "Failed to update item:" : "Failed to add item:", err);
+      alert(editingId ? "Failed to update item." : "Failed to add item.");
     }
   }
 
@@ -711,7 +771,9 @@ export default function NewShoppingPage() {
               {/* Add Item form */}
               {!storeMode && (
                 <div className="rounded-2xl glass-card p-5">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-primary mb-3">Add Item</h3>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-primary mb-3">
+                    {editingId ? "Edit Item" : "Add Item"}
+                  </h3>
                   <form onSubmit={handleAddItem} className="space-y-4">
                     <div className="flex flex-col lg:flex-row gap-4 items-end">
                       <div className="flex-1 w-full relative">
@@ -719,8 +781,9 @@ export default function NewShoppingPage() {
                           <ShoppingCart className="h-4 w-4" />
                         </span>
                         <input
+                          id="shoppingItemName"
                           type="text"
-                          placeholder={`Add item to ${selectedList?.name}...`}
+                          placeholder={editingId ? "Edit item details..." : `Add item to ${selectedList?.name}...`}
                           value={itemName}
                           onChange={(e) => setItemName(e.target.value)}
                           className="w-full pl-11 pr-4 py-2.5 bg-surface border border-outline-variant/60 rounded-xl text-xs focus:border-primary focus:ring-primary focus:outline-none transition-all placeholder:text-on-surface-variant/50 text-on-surface"
@@ -766,11 +829,20 @@ export default function NewShoppingPage() {
                           </select>
                         </div>
 
+                        {editingId && (
+                          <button
+                            type="button"
+                            onClick={handleCancelEdit}
+                            className="h-9 px-4 bg-surface-container-high hover:bg-surface-dim text-on-surface rounded-xl shadow-xs active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer font-bold mt-5 text-xs border-none"
+                          >
+                            Cancel
+                          </button>
+                        )}
                         <button
                           type="submit"
                           className="h-9 px-5 bg-primary text-on-primary rounded-xl shadow-md hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer font-bold mt-5 text-xs"
                         >
-                          <Plus className="h-3.5 w-3.5" /> Add
+                          {editingId ? "Save Changes" : <><Plus className="h-3.5 w-3.5" /> Add</>}
                         </button>
                       </div>
                     </div>
@@ -883,6 +955,14 @@ export default function NewShoppingPage() {
                                   <span className="font-bold text-primary">{item.quantity}</span>
                                   {item.unit && <span className="text-on-surface-variant ml-1 font-semibold">{item.unit}</span>}
                                 </div>
+
+                                <button
+                                  onClick={() => handleEditItem(item)}
+                                  className="p-1.5 text-on-surface-variant/40 hover:text-primary hover:bg-primary/10 rounded-xl transition-all cursor-pointer md:opacity-0 md:group-hover:opacity-100 focus:opacity-100 shrink-0"
+                                  title="Edit Item"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </button>
 
                                 <button
                                   onClick={() => handleDeleteItem(item.id)}

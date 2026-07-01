@@ -20,7 +20,8 @@ import {
   X,
   Play,
   RotateCcw,
-  AlertCircle
+  AlertCircle,
+  Pencil
 } from "lucide-react";
 
 import { FamilyAvatars } from "@/components/ui/family-avatars";
@@ -55,6 +56,8 @@ export default function TasksPage() {
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   const [assignedTo, setAssignedTo] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const { familyId: cachedFamilyId, familyMembers: cachedMembers, currentUser: cachedUser, memberRole: cachedRole, isInitialized, setAppInfo } = useAppStore();
 
@@ -144,40 +147,102 @@ export default function TasksPage() {
     loadData();
   }, [supabase, router, cachedFamilyId, cachedMembers, cachedUser, cachedRole, isInitialized, setAppInfo]);
 
-  const handleCreateTask = async (e: React.FormEvent) => {
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setTitle("");
+    setDescription("");
+    setDueDate("");
+    setPriority("medium");
+    setAssignedTo("");
+    setShowCreateModal(false);
+  };
+
+  const handleEditTask = (task: any) => {
+    setEditingId(task.id);
+    setTitle(task.title || "");
+    setDescription(task.description || "");
+    setDueDate(task.due_date || "");
+    setPriority(task.priority || "medium");
+    setAssignedTo(task.assigned_to || "");
+    setShowCreateModal(true);
+    setTimeout(() => {
+      const input = document.getElementById("taskTitle");
+      if (input) {
+        input.focus();
+        input.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 100);
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !familyId || !currentUser) return;
 
     setIsSubmitting(true);
     try {
-      const { data: newTask, error } = await supabase
-        .from("tasks")
-        .insert({
-          family_id: familyId,
-          created_by: currentUser.id,
-          assigned_to: assignedTo || null,
-          title: title.trim(),
-          description: description.trim() || null,
-          due_date: dueDate || null,
-          priority,
-          status: "open",
-          is_personal: false
-        })
-        .select()
-        .single();
+      if (editingId) {
+        const { data: updatedTask, error } = await supabase
+          .from("tasks")
+          .update({
+            assigned_to: assignedTo || null,
+            title: title.trim(),
+            description: description.trim() || null,
+            due_date: dueDate || null,
+            priority,
+          })
+          .eq("id", editingId)
+          .select()
+          .single();
 
-      if (error) throw error;
+        if (error) throw error;
 
-      setTasks((prev) => [...prev, newTask]);
-      setTitle("");
-      setDescription("");
-      setDueDate("");
-      setPriority("medium");
-      setAssignedTo("");
-      setShowCreateModal(false);
+        // Reload data
+        const { data: tasksData } = await supabase
+          .from("tasks")
+          .select("*")
+          .eq("family_id", familyId);
+
+        if (tasksData) {
+          setTasks(tasksData);
+        }
+
+        setToastMessage("Task updated successfully!");
+        setTimeout(() => setToastMessage(null), 3000);
+
+        handleCancelEdit();
+      } else {
+        const { data: newTask, error } = await supabase
+          .from("tasks")
+          .insert({
+            family_id: familyId,
+            created_by: currentUser.id,
+            assigned_to: assignedTo || null,
+            title: title.trim(),
+            description: description.trim() || null,
+            due_date: dueDate || null,
+            priority,
+            status: "open",
+            is_personal: false
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        setTasks((prev) => [...prev, newTask]);
+        setTitle("");
+        setDescription("");
+        setDueDate("");
+        setPriority("medium");
+        setAssignedTo("");
+        setShowCreateModal(false);
+
+        setToastMessage("Task created successfully!");
+        setTimeout(() => setToastMessage(null), 3000);
+      }
     } catch (err) {
-      console.error("Failed to create task:", err);
-      alert("Failed to create task.");
+      console.error(editingId ? "Failed to update task:" : "Failed to create task:", err);
+      alert(editingId ? "Failed to update task." : "Failed to create task.");
     } finally {
       setIsSubmitting(false);
     }
@@ -342,6 +407,16 @@ export default function TasksPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
+      {/* ─── TOAST NOTIFICATION ───────────────────────────────── */}
+      {toastMessage && (
+        <div className="fixed bottom-24 right-6 md:top-8 md:right-8 bg-tertiary-container text-on-tertiary-container px-6 py-4 rounded-2xl shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5 md:slide-in-from-top-5 duration-300 z-50">
+          <CheckCircle2 className="h-5 w-5 text-on-tertiary-container bg-tertiary rounded-full p-0.5" />
+          <div>
+            <p className="font-bold text-sm">Update</p>
+            <p className="text-xs opacity-90">{toastMessage}</p>
+          </div>
+        </div>
+      )}
       
       {/* ─── HEADER & STATISTICS ───────────────────────────────── */}
       <section className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -546,7 +621,15 @@ export default function TasksPage() {
 
       {/* ─── FLOATING ACTION BUTTON ────────────────────────────── */}
       <button
-        onClick={() => setShowCreateModal(true)}
+        onClick={() => {
+          setEditingId(null);
+          setTitle("");
+          setDescription("");
+          setDueDate("");
+          setPriority("medium");
+          setAssignedTo("");
+          setShowCreateModal(true);
+        }}
         className="fixed bottom-24 right-6 md:bottom-8 md:right-8 w-14 h-14 bg-secondary text-secondary-foreground rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-40 group cursor-pointer border-none"
         title="Add Family Chore"
       >
@@ -558,21 +641,21 @@ export default function TasksPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div 
             className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity" 
-            onClick={() => setShowCreateModal(false)} 
+            onClick={handleCancelEdit} 
           />
 
           <form 
-            onSubmit={handleCreateTask} 
+            onSubmit={handleFormSubmit} 
             className="relative z-10 w-full max-w-lg bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150"
           >
             <div className="flex items-center justify-between pb-3 border-b border-outline-variant/20">
               <h3 className="font-serif text-lg font-bold text-primary flex items-center gap-2">
                 <Clock className="h-5 w-5 text-primary" />
-                Add Family Chore
+                {editingId ? "Edit Family Chore" : "Add Family Chore"}
               </h3>
               <button 
                 type="button"
-                onClick={() => setShowCreateModal(false)}
+                onClick={handleCancelEdit}
                 className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant/60 hover:bg-surface-container hover:text-on-surface transition-colors cursor-pointer border-none"
               >
                 <X className="h-5 w-5" />
@@ -648,13 +731,30 @@ export default function TasksPage() {
               </select>
             </div>
 
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full mt-2 bg-primary hover:opacity-90 text-primary-foreground py-3 rounded-xl active:scale-[0.98] transition-all shadow-md font-sans text-xs font-bold uppercase tracking-widest cursor-pointer border-none h-11"
-            >
-              {isSubmitting ? "Creating Chore..." : "Create Chore"}
-            </Button>
+            <div className="flex gap-2 mt-2">
+              {editingId && (
+                <Button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  className="flex-1 bg-surface-container-high hover:bg-surface-dim text-on-surface py-3 rounded-xl active:scale-[0.98] transition-all shadow-xs font-sans text-xs font-bold uppercase tracking-widest cursor-pointer border-none h-11"
+                >
+                  Cancel
+                </Button>
+              )}
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className={`${editingId ? "flex-1" : "w-full"} bg-primary hover:opacity-90 text-primary-foreground py-3 rounded-xl active:scale-[0.98] transition-all shadow-md font-sans text-xs font-bold uppercase tracking-widest cursor-pointer border-none h-11`}
+              >
+                {isSubmitting
+                  ? editingId
+                    ? "Updating Chore..."
+                    : "Creating Chore..."
+                  : editingId
+                  ? "Update Task"
+                  : "Create Chore"}
+              </Button>
+            </div>
           </form>
         </div>
       )}
@@ -817,6 +917,17 @@ export default function TasksPage() {
               <RotateCcw className="h-2.5 w-2.5" /> Reopen
             </button>
           )}
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEditTask(task);
+            }}
+            className="p-1.5 text-on-surface-variant/40 hover:text-primary hover:bg-primary/10 transition-all rounded-lg cursor-pointer border-none"
+            title="Edit Task"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
 
           <button
             onClick={(e) => {

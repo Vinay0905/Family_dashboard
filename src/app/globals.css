@@ -93,6 +93,7 @@
   --primary-container: #D5E3F6;
   --secondary-container: #EADCB9;
   --tertiary-container: #FFDCC3;
+  --on-tertiary-container: #301400;
 
   --education: #6366f1;
   --fuel: #f97316;
@@ -186,6 +187,7 @@
   --primary-container: #0A2947;
   --secondary-container: #4A341E;
   --tertiary-container: #262D1A;
+  --on-tertiary-container: #F3E4C9;
 
   --education: #818cf8;
   --fuel: #fb923c;
@@ -217,7 +219,7 @@
   --color-tertiary: var(--tertiary);
   --color-tertiary-foreground: var(--tertiary-foreground);
   --color-on-tertiary: var(--tertiary-foreground);
-  --color-on-tertiary-container: var(--tertiary-foreground);
+  --color-on-tertiary-container: var(--on-tertiary-container);
   --color-sidebar: var(--sidebar);
   --color-spacing: var(--spacing);
   --color-font-mono: var(--font-mono);

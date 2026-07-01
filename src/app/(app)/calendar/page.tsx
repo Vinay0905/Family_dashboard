@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useAppStore } from "@/lib/store";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft,
   ChevronRight,
@@ -15,6 +16,7 @@ import {
   X,
   Search,
   Lock,
+  Pencil,
 } from "lucide-react";
 
 type ViewMode = "day" | "month" | "yearly";
@@ -70,6 +72,36 @@ export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("month");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showSummary, setShowSummary] = useState(false);
+  
+  const lastClickRef = useRef<{ time: number; dateString: string }>({ time: 0, dateString: "" });
+
+  const handleCellClick = (date: Date) => {
+    const now = Date.now();
+    const dateStr = date.toDateString();
+    const diff = now - lastClickRef.current.time;
+
+    if (diff < 300 && lastClickRef.current.dateString === dateStr) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const d = String(date.getDate()).padStart(2, "0");
+      setFormStartAt(`${y}-${m}-${d}T10:00`);
+      setIsModalOpen(true);
+      lastClickRef.current = { time: 0, dateString: "" };
+    } else {
+      setSelectedDate(date);
+      lastClickRef.current = { time: now, dateString: dateStr };
+    }
+  };
+  
+  const handleDayHourDoubleClick = (hour: number) => {
+    const y = currentDate.getFullYear();
+    const m = String(currentDate.getMonth() + 1).padStart(2, "0");
+    const d = String(currentDate.getDate()).padStart(2, "0");
+    const hStr = String(hour).padStart(2, "0");
+    setFormStartAt(`${y}-${m}-${d}T${hStr}:00`);
+    setIsModalOpen(true);
+  };
   
   // Event creation modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -81,12 +113,50 @@ export default function CalendarPage() {
     const d = String(now.getDate()).padStart(2, "0");
     return `${y}-${m}-${d}T10:00`;
   });
-  const [formCategory, setFormCategory] = useState("family");
+  const [formCategory, setFormCategory] = useState<"school" | "other" | "travel" | "family" | "work" | "birthday" | "medical">("family");
   const [formLocation, setFormLocation] = useState("");
   const [formDesc, setFormDesc] = useState("");
   const [formIsPersonal, setFormIsPersonal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formMsg, setFormMsg] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const clearForm = () => {
+    setFormTitle("");
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    setFormStartAt(`${y}-${m}-${d}T10:00`);
+    setFormCategory("family");
+    setFormLocation("");
+    setFormDesc("");
+    setFormIsPersonal(false);
+    setEditingId(null);
+    setFormMsg(null);
+  };
+
+  const handleCloseModal = () => {
+    clearForm();
+    setIsModalOpen(false);
+  };
+
+  const handleEditClick = (evt: CalEvent) => {
+    setFormTitle(evt.title);
+    const date = new Date(evt.start_at);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    const h = String(date.getHours()).padStart(2, "0");
+    const min = String(date.getMinutes()).padStart(2, "0");
+    setFormStartAt(`${y}-${m}-${d}T${h}:${min}`);
+    setFormCategory(evt.category as any);
+    setFormLocation(evt.location || "");
+    setFormDesc(evt.description || "");
+    setFormIsPersonal(evt.is_personal || false);
+    setEditingId(evt.id);
+    setIsModalOpen(true);
+  };
 
   // ── Load data ─────────────────────────────────────────────────
   const { familyId: cachedFamilyId, currentUser: cachedUser, isInitialized, setAppInfo } = useAppStore();
@@ -181,7 +251,7 @@ export default function CalendarPage() {
       return d.getFullYear() === year && d.getMonth() === month;
     });
 
-  // ── Add event ────────────────────────────────────────────────
+  // ── Add/Edit event ───────────────────────────────────────────
   async function handleAddEvent(ev: React.FormEvent) {
     ev.preventDefault();
     if (!formTitle || !formStartAt || !familyId) return;
@@ -192,41 +262,61 @@ export default function CalendarPage() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return;
 
-      const { data: newEvent, error } = await supabase
-        .from("events")
-        .insert({
-          family_id: familyId,
-          created_by: userData.user.id,
-          title: formTitle.trim(),
-          start_at: new Date(formStartAt).toISOString(),
-          category: formCategory as any,
-          location: formLocation.trim() || null,
-          description: formDesc.trim() || null,
-          is_personal: formIsPersonal,
-        })
-        .select()
-        .single();
+      const payload = {
+        title: formTitle.trim(),
+        start_at: new Date(formStartAt).toISOString(),
+        category: formCategory as any,
+        location: formLocation.trim() || null,
+        description: formDesc.trim() || null,
+        is_personal: formIsPersonal,
+      };
 
-      if (error) throw error;
+      if (editingId) {
+        const { data: updatedEvent, error } = await supabase
+          .from("events")
+          .update(payload)
+          .eq("id", editingId)
+          .select()
+          .single();
 
-      setEvents((prev) =>
-        [...prev, newEvent as CalEvent].sort(
-          (a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime()
-        )
-      );
+        if (error) throw error;
 
-      // Reset form
-      setFormTitle("");
-      setFormLocation("");
-      setFormDesc("");
-      setFormIsPersonal(false);
-      setFormMsg("Event saved!");
-      setTimeout(() => {
-        setFormMsg(null);
-        setIsModalOpen(false);
-      }, 1200);
+        setEvents((prev) =>
+          prev
+            .map((e) => (e.id === editingId ? (updatedEvent as CalEvent) : e))
+            .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime())
+        );
+
+        setFormMsg("Event updated!");
+        setTimeout(() => {
+          handleCloseModal();
+        }, 1200);
+      } else {
+        const { data: newEvent, error } = await supabase
+          .from("events")
+          .insert({
+            family_id: familyId,
+            created_by: userData.user.id,
+            ...payload,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        setEvents((prev) =>
+          [...prev, newEvent as CalEvent].sort(
+            (a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime()
+          )
+        );
+
+        setFormMsg("Event saved!");
+        setTimeout(() => {
+          handleCloseModal();
+        }, 1200);
+      }
     } catch (err) {
-      console.error("Failed to add event:", err);
+      console.error("Failed to save event:", err);
       setFormMsg("Failed to save — try again.");
     } finally {
       setIsSubmitting(false);
@@ -345,7 +435,7 @@ export default function CalendarPage() {
             return (
               <div
                 key={`day-${date.toDateString()}-${idx}`}
-                onClick={() => isCurrentMonth && setSelectedDate(date)}
+                onClick={() => isCurrentMonth && handleCellClick(date)}
                 className={`p-2 flex flex-col cursor-pointer transition-all duration-150 min-h-[95px] md:min-h-[115px] relative overflow-hidden group select-none
                   ${!isCurrentMonth ? "bg-surface-container-low/30 opacity-40 cursor-default" : ""}
                   ${isCurrentMonth && isSelected ? "bg-primary/5 ring-2 ring-primary/50 neon-glow" : isCurrentMonth ? "hover:bg-surface-container-low/30" : ""}
@@ -446,7 +536,10 @@ export default function CalendarPage() {
                 <div className="w-16 shrink-0 px-3 pt-2.5 text-[10px] font-bold text-on-surface-variant/40 border-r border-outline-variant/15 text-right select-none">
                   {lbl}
                 </div>
-                <div className="flex-1 p-2 flex flex-col gap-1 justify-center">
+                <div 
+                  className="flex-1 p-2 flex flex-col gap-1 justify-center cursor-pointer select-none"
+                  onDoubleClick={() => handleDayHourDoubleClick(h)}
+                >
                   {hEvts.length === 0 ? (
                     <div className="text-[9px] text-on-surface-variant/20 italic pl-2 opacity-0 group-hover:opacity-100 transition-opacity">No events</div>
                   ) : (
@@ -468,6 +561,13 @@ export default function CalendarPage() {
                               </span>
                             )}
                           </div>
+                          <button
+                            onClick={() => handleEditClick(evt)}
+                            className="p-1 rounded-full text-on-surface-variant/40 hover:text-primary hover:bg-primary/10 active:scale-95 transition-all cursor-pointer mr-1"
+                            title="Edit"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
                           <button
                             onClick={() => handleDeleteEvent(evt.id)}
                             className="p-1 rounded-full text-on-surface-variant/40 hover:text-destructive hover:bg-destructive/10 active:scale-95 transition-all cursor-pointer"
@@ -582,83 +682,159 @@ export default function CalendarPage() {
       weekday: "short", day: "numeric", month: "long",
     });
 
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+
+    const summaryEvts = events.filter((e) => {
+      const d = new Date(e.start_at);
+      if (viewMode === "yearly") {
+        return d.getFullYear() === year;
+      }
+      if (viewMode === "month") {
+        return d.getFullYear() === year && d.getMonth() === month;
+      }
+      return isSameDay(d, currentDate);
+    });
+
+    const summaryLabel = 
+      viewMode === "yearly" ? `${year} Year Summary` : 
+      viewMode === "month" ? `${currentDate.toLocaleDateString("en-IN", { month: "long", year: "numeric" })} Summary` : 
+      `Day Summary (${currentDate.toLocaleDateString("en-IN", { day: "numeric", month: "short" })})`;
+
     return (
       <div className="flex flex-col h-full gap-4">
-        {/* Selected date header */}
+        {/* Selected date header / Summary header */}
         <div className="flex items-center justify-between pb-3 border-b border-outline-variant/20">
-          <div>
-            <h3 className="font-serif font-bold text-sm text-on-surface">{selLabel}</h3>
-            <p className="text-[10px] text-on-surface-variant/70 font-semibold mt-0.5">Selected Date</p>
-          </div>
-          <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${dayEvts.length > 0 ? "bg-primary/10 text-primary border-primary/20 neon-glow" : "bg-surface-container text-on-surface-variant border-outline-variant/10"}`}>
-            {dayEvts.length} event{dayEvts.length !== 1 ? "s" : ""}
-          </span>
-        </div>
-
-        {/* Selected Day's Event List */}
-        <div className="flex-grow overflow-y-auto space-y-3 pr-1 max-h-[350px] lg:max-h-[440px] custom-scrollbar">
-          {dayEvts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center text-on-surface-variant/40">
-              <CalendarDays className="h-8 w-8 mb-2 stroke-[1.5] text-on-surface-variant/30" />
-              <p className="text-xs font-semibold">No events on this day</p>
-              <p className="text-[10px] font-medium mt-0.5">Click Add Event to save one</p>
+          {showSummary ? (
+            <div>
+              <h3 className="font-serif font-bold text-sm text-on-surface">{summaryLabel}</h3>
+              <p className="text-[10px] text-on-surface-variant/70 font-semibold mt-0.5">Range Outflow Summary</p>
             </div>
           ) : (
-            dayEvts.map((evt) => {
-              const cat = CAT_COLORS[evt.category] ?? CAT_COLORS.other;
-              return (
-                <div
-                  key={evt.id}
-                  className="group flex gap-2 items-start p-3 rounded-2xl border border-outline-variant/15 bg-surface-container-low/20 hover:border-primary/30 hover:bg-surface-container-low/40 transition-all duration-200"
-                >
-                  {/* Category stripe indicator */}
-                  <div className={`w-1 self-stretch rounded-full shrink-0 ${cat.dot}`} />
+            <div>
+              <h3 className="font-serif font-bold text-sm text-on-surface">{selLabel}</h3>
+              <p className="text-[10px] text-on-surface-variant/70 font-semibold mt-0.5">Selected Date</p>
+            </div>
+          )}
+          
+          <button
+            onClick={() => setShowSummary(prev => !prev)}
+            className="px-3.5 py-1.5 rounded-full text-[10px] font-extrabold bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 hover:bg-emerald-500/25 active:scale-95 transition-all cursor-pointer font-sans uppercase tracking-wider"
+          >
+            {showSummary ? "Details" : "Summary"}
+          </button>
+        </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-xs font-bold text-on-surface truncate">{evt.title}</p>
-                      {evt.is_personal && (
-                        <span title="Private event" className="inline-flex shrink-0">
-                          <Lock className="h-2.5 w-2.5 text-on-surface-variant/50" />
-                        </span>
-                      )}
-                    </div>
-                    
-                    <p className="text-[10px] text-on-surface-variant font-semibold flex items-center gap-1 mt-1">
-                      <Clock className="h-3 w-3 text-on-surface-variant/60" />
-                      {new Date(evt.start_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+        {/* Dynamic Panel Content */}
+        {showSummary ? (
+          <div className="flex-grow overflow-y-auto space-y-3.5 pr-1 max-h-[350px] lg:max-h-[440px] custom-scrollbar">
+            {summaryEvts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center text-on-surface-variant/40">
+                <CalendarDays className="h-8 w-8 mb-2 stroke-[1.5] text-on-surface-variant/30" />
+                <p className="text-xs font-semibold">No events in this range</p>
+              </div>
+            ) : (
+              summaryEvts.map((evt) => {
+                const cat = CAT_COLORS[evt.category] ?? CAT_COLORS.other;
+                const timeStr = new Date(evt.start_at).toLocaleTimeString("en-IN", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true
+                }).toLowerCase();
+
+                return (
+                  <div 
+                    key={evt.id} 
+                    className="p-4 rounded-xl border border-outline-variant/15 bg-surface-container-low/20 flex flex-col gap-1.5 text-xs font-sans"
+                  >
+                    <p className="font-extrabold text-sm text-on-surface leading-tight">{evt.title}</p>
+                    <p className="text-on-surface-variant/80 font-medium flex items-center gap-1">
+                      <Clock className="h-3 w-3 opacity-60" /> {timeStr}
                     </p>
-                    
                     {evt.location && (
-                      <p className="text-[10px] text-on-surface-variant font-medium flex items-center gap-1 mt-0.5">
-                        <MapPin className="h-3 w-3 text-secondary/70" />
-                        <span className="truncate">{evt.location}</span>
+                      <p className="text-secondary font-bold flex items-center gap-1">
+                        <MapPin className="h-3 w-3 opacity-60" /> {evt.location}
                       </p>
                     )}
-
-                    {evt.description && (
-                      <p className="text-[10px] text-on-surface-variant/70 mt-1 pl-1.5 border-l border-outline-variant/30 leading-relaxed italic truncate" title={evt.description}>
-                        {evt.description}
-                      </p>
-                    )}
-                    
-                    <span className={`inline-block mt-2 text-[9px] font-bold uppercase px-2.5 py-0.5 rounded-full border ${cat.bg} ${cat.text} ${cat.border}`}>
+                    <span className={`w-fit mt-1 text-[9px] font-bold uppercase px-2 py-0.5 rounded-full border ${cat.bg} ${cat.text} ${cat.border}`}>
                       {evt.category}
                     </span>
                   </div>
-
-                  <button
-                    onClick={() => handleDeleteEvent(evt.id)}
-                    className="opacity-0 group-hover:opacity-100 p-1.5 rounded-full hover:bg-destructive/10 hover:text-destructive text-on-surface-variant/40 transition-all shrink-0 cursor-pointer"
-                    title="Delete"
+                );
+              })
+            )}
+          </div>
+        ) : (
+          <div className="flex-grow overflow-y-auto space-y-3 pr-1 max-h-[350px] lg:max-h-[440px] custom-scrollbar">
+            {dayEvts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center text-on-surface-variant/40">
+                <CalendarDays className="h-8 w-8 mb-2 stroke-[1.5] text-on-surface-variant/30" />
+                <p className="text-xs font-semibold">No events on this day</p>
+                <p className="text-[10px] font-medium mt-0.5">Click Add Event to save one</p>
+              </div>
+            ) : (
+              dayEvts.map((evt) => {
+                const cat = CAT_COLORS[evt.category] ?? CAT_COLORS.other;
+                return (
+                  <div
+                    key={evt.id}
+                    className="group flex gap-2 items-start p-3 rounded-2xl border border-outline-variant/15 bg-surface-container-low/20 hover:border-primary/30 hover:bg-surface-container-low/40 transition-all duration-200"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              );
-            })
-          )}
-        </div>
+                    <div className={`w-1 self-stretch rounded-full shrink-0 ${cat.dot}`} />
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-xs font-bold text-on-surface truncate">{evt.title}</p>
+                        {evt.is_personal && (
+                          <span title="Private event" className="inline-flex shrink-0">
+                            <Lock className="h-2.5 w-2.5 text-on-surface-variant/50" />
+                          </span>
+                        )}
+                      </div>
+                      
+                      <p className="text-[10px] text-on-surface-variant font-semibold flex items-center gap-1 mt-1">
+                        <Clock className="h-3 w-3 text-on-surface-variant/60" />
+                        {new Date(evt.start_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                      
+                      {evt.location && (
+                        <p className="text-[10px] text-on-surface-variant font-medium flex items-center gap-1 mt-0.5">
+                          <MapPin className="h-3 w-3 text-secondary/70" />
+                          <span className="truncate">{evt.location}</span>
+                        </p>
+                      )}
+
+                      {evt.description && (
+                        <p className="text-[10px] text-on-surface-variant/70 mt-1 pl-1.5 border-l border-outline-variant/30 leading-relaxed italic truncate" title={evt.description}>
+                          {evt.description}
+                        </p>
+                      )}
+                      
+                      <span className={`inline-block mt-2 text-[9px] font-bold uppercase px-2.5 py-0.5 rounded-full border ${cat.bg} ${cat.text} ${cat.border}`}>
+                        {evt.category}
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={() => handleEditClick(evt)}
+                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded-full hover:bg-primary/10 hover:text-primary text-on-surface-variant/40 transition-all shrink-0 cursor-pointer mr-0.5"
+                      title="Edit"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteEvent(evt.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded-full hover:bg-destructive/10 hover:text-destructive text-on-surface-variant/40 transition-all shrink-0 cursor-pointer"
+                      title="Delete"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
 
         {/* Quick action button to trigger creation dialog modal */}
         <button
@@ -750,10 +926,21 @@ export default function CalendarPage() {
       {/* ── Main Area: 3/4 Calendar | 1/4 Panel ────────────── */}
       <div className="flex flex-col lg:flex-row gap-6 items-start">
         {/* Left: Active View Calendar Container */}
-        <div className="flex-grow w-full bg-surface-container-lowest rounded-2xl border border-outline-variant/20 shadow-sm overflow-hidden flex flex-col">
-          {viewMode === "month"  && <MonthView />}
-          {viewMode === "day"    && <DayView />}
-          {viewMode === "yearly" && <YearlyView />}
+        <div className="flex-grow w-full bg-surface-container-lowest rounded-2xl border border-outline-variant/20 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={viewMode}
+              initial={{ opacity: 0, x: 15 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -15 }}
+              transition={{ duration: 0.22, ease: "easeInOut" }}
+              className="flex-1 flex flex-col"
+            >
+              {viewMode === "month"  && <MonthView />}
+              {viewMode === "day"    && <DayView />}
+              {viewMode === "yearly" && <YearlyView />}
+            </motion.div>
+          </AnimatePresence>
         </div>
 
         {/* Right: Quick selected date info side-panel */}
@@ -768,17 +955,19 @@ export default function CalendarPage() {
           {/* Backdrop Blur Overlay */}
           <div
             className="absolute inset-0 bg-black/40 backdrop-blur-xs transition-opacity"
-            onClick={() => setIsModalOpen(false)}
+            onClick={handleCloseModal}
           />
 
           {/* Modal Box */}
           <div className="relative bg-surface-container-lowest w-full max-w-md rounded-2xl border border-outline-variant/30 shadow-xl overflow-hidden transform transition-all animate-in zoom-in-95 duration-200">
             {/* Header */}
             <div className="px-5 py-4 border-b border-outline-variant/20 flex justify-between items-center bg-primary/10">
-              <h3 className="font-serif font-bold text-base text-primary">Create New Event</h3>
+              <h3 className="font-serif font-bold text-base text-primary">
+                {editingId ? "Update Event" : "Create New Event"}
+              </h3>
               <button
                 className="text-on-surface-variant/60 hover:text-on-surface hover:bg-surface-container p-1 rounded-full transition-all"
-                onClick={() => setIsModalOpen(false)}
+                onClick={handleCloseModal}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -824,7 +1013,7 @@ export default function CalendarPage() {
                 <select
                   id="eCat"
                   value={formCategory}
-                  onChange={(e) => setFormCategory(e.target.value)}
+                  onChange={(e) => setFormCategory(e.target.value as any)}
                   className="w-full border border-outline-variant/30 rounded-xl px-3 py-2 text-xs focus:border-primary focus:outline-none bg-surface-container-low text-on-surface transition-all"
                 >
                   {CAT_OPTIONS.map((c) => (
@@ -888,7 +1077,7 @@ export default function CalendarPage() {
               <div className="flex justify-end gap-2 pt-2 border-t border-outline-variant/15">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={handleCloseModal}
                   className="px-5 py-2 rounded-full text-xs font-bold text-on-surface-variant hover:bg-surface-container transition-all active:scale-95"
                 >
                   Cancel
@@ -898,7 +1087,7 @@ export default function CalendarPage() {
                   disabled={isSubmitting}
                   className="px-6 py-2 rounded-full bg-secondary text-on-secondary hover:bg-secondary/95 text-xs font-bold shadow-md active:scale-95 transition-all cursor-pointer"
                 >
-                  {isSubmitting ? "Saving…" : "Save Event"}
+                  {isSubmitting ? "Saving…" : editingId ? "Save Changes" : "Save Event"}
                 </button>
               </div>
             </form>

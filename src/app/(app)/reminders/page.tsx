@@ -10,7 +10,8 @@ import {
   Plus,
   Trash2,
   Check,
-  AlertCircle
+  AlertCircle,
+  Pencil
 } from "lucide-react";
 
 interface Reminder {
@@ -36,10 +37,34 @@ export default function NewRemindersPage() {
   const supabase = createClient();
   const [loading, setLoading] = useState(true);
   const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState("");
   const [remindAt, setRemindAt] = useState("");
   const [category, setCategory] = useState<"bill" | "birthday" | "anniversary" | "renewal" | "maintenance" | "travel" | "other">("bill");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const resetForm = () => {
+    setTitle("");
+    setRemindAt("");
+    setCategory("bill");
+    setEditingId(null);
+    setIsEditing(false);
+  };
+
+  const handleOpenEdit = (rem: Reminder) => {
+    setEditingId(rem.id);
+    setIsEditing(true);
+    setTitle(rem.title || "");
+    if (rem.remind_at) {
+      const date = new Date(rem.remind_at);
+      const localISO = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      setRemindAt(localISO);
+    } else {
+      setRemindAt("");
+    }
+    setCategory(rem.category as any || "bill");
+  };
 
   const { familyId: cachedFamilyId, currentUser: cachedUser, isInitialized, setAppInfo } = useAppStore();
 
@@ -121,23 +146,38 @@ export default function NewRemindersPage() {
         .maybeSingle();
 
       if (member && userData?.user) {
-        const { error } = await supabase.from("reminders").insert({
-          family_id: member.family_id,
-          title,
-          remind_at: new Date(remindAt).toISOString(),
-          category,
-          is_acknowledged: false,
-          created_by: userData.user.id,
-        });
+        if (isEditing && editingId) {
+          const { error } = await supabase
+            .from("reminders")
+            .update({
+              title,
+              remind_at: new Date(remindAt).toISOString(),
+              category,
+            })
+            .eq("id", editingId);
 
-        if (error) throw error;
+          if (error) throw error;
+          alert("Reminder updated successfully!");
+        } else {
+          const { error } = await supabase.from("reminders").insert({
+            family_id: member.family_id,
+            title,
+            remind_at: new Date(remindAt).toISOString(),
+            category,
+            is_acknowledged: false,
+            created_by: userData.user.id,
+          });
 
-        setTitle("");
-        setRemindAt("");
+          if (error) throw error;
+          alert("Reminder set successfully!");
+        }
+
+        resetForm();
         loadReminders();
       }
     } catch (err) {
-      console.error("Failed to create reminder:", err);
+      console.error("Failed to save reminder:", err);
+      alert("Failed to save reminder.");
     } finally {
       setIsSubmitting(false);
     }
@@ -201,7 +241,7 @@ export default function NewRemindersPage() {
         
         {/* Left Side - Add Reminder Form */}
         <div className="lg:col-span-1 bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/20 h-fit">
-          <h3 className="font-quicksand text-lg font-bold text-on-surface mb-4">Set Reminder</h3>
+          <h3 className="font-quicksand text-lg font-bold text-on-surface mb-4">{isEditing ? "Edit Reminder" : "Set Reminder"}</h3>
           <form onSubmit={handleAddReminder} className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-on-surface-variant/80 uppercase tracking-wider mb-1.5">Reminder Title</label>
@@ -239,14 +279,29 @@ export default function NewRemindersPage() {
               </select>
             </div>
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-primary text-on-primary font-bold text-xs hover:opacity-95 active:scale-95 transition-all cursor-pointer shadow-xs disabled:opacity-50"
-            >
-              <Plus className="h-4 w-4" />
-              Set Active Reminder
-            </button>
+            <div className="flex gap-2">
+              {isEditing && (
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="flex-1 py-3 border border-outline-variant bg-surface text-on-surface font-sans text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-surface-container-low active:scale-95 transition-all flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  Cancel
+                </button>
+              )}
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-grow flex items-center justify-center gap-2 p-3 rounded-xl bg-primary text-on-primary font-bold text-xs hover:opacity-95 active:scale-95 transition-all cursor-pointer shadow-xs disabled:opacity-50"
+              >
+                {!isEditing && <Plus className="h-4 w-4" />}
+                {isSubmitting
+                  ? "Saving..."
+                  : isEditing
+                  ? "Save Changes"
+                  : "Set Active Reminder"}
+              </button>
+            </div>
           </form>
         </div>
 
@@ -304,6 +359,13 @@ export default function NewRemindersPage() {
                           <Check className="h-4 w-4" />
                         </button>
                         <button
+                          onClick={() => handleOpenEdit(rem)}
+                          className="p-2 rounded-xl bg-surface-container hover:bg-primary/10 hover:text-primary active:scale-90 transition-all border border-outline-variant/20"
+                          title="Edit reminder"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
                           onClick={() => handleDelete(rem.id)}
                           className="p-2 rounded-xl bg-surface-container hover:bg-rose-500/10 hover:text-rose-600 active:scale-90 transition-all border border-outline-variant/20"
                           title="Delete reminder"
@@ -334,6 +396,13 @@ export default function NewRemindersPage() {
                         className="text-[10px] font-bold text-primary hover:underline"
                       >
                         Restore
+                      </button>
+                      <button
+                        onClick={() => handleOpenEdit(rem)}
+                        className="text-on-surface-variant/40 hover:text-primary p-1"
+                        title="Edit reminder"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
                       </button>
                       <button
                         onClick={() => handleDelete(rem.id)}
